@@ -22,16 +22,16 @@ type dnsSettingsDataSource struct {
 }
 
 type dnsSettingsDataSourceModel struct {
-	DnsServerDomain  types.String `tfsdk:"dns_server_domain"`
-	DnssecValidation types.Bool   `tfsdk:"dnssec_validation"`
-	Recursion        types.String `tfsdk:"recursion"`
-	PreferIPv6       types.Bool   `tfsdk:"prefer_ipv6"`
-	EnableBlocking   types.Bool   `tfsdk:"enable_blocking"`
-	BlockingType     types.String `tfsdk:"blocking_type"`
-	Forwarders       types.List   `tfsdk:"forwarders"`
+	DnsServerDomain   types.String `tfsdk:"dns_server_domain"`
+	DnssecValidation  types.Bool   `tfsdk:"dnssec_validation"`
+	Recursion         types.String `tfsdk:"recursion"`
+	PreferIPv6        types.Bool   `tfsdk:"prefer_ipv6"`
+	EnableBlocking    types.Bool   `tfsdk:"enable_blocking"`
+	BlockingType      types.String `tfsdk:"blocking_type"`
+	Forwarders        types.List   `tfsdk:"forwarders"`
 	ForwarderProtocol types.String `tfsdk:"forwarder_protocol"`
-	EnableLogging    types.Bool   `tfsdk:"enable_logging"`
-	LogQueries       types.Bool   `tfsdk:"log_queries"`
+	EnableLogging     types.Bool   `tfsdk:"enable_logging"`
+	LogQueries        types.Bool   `tfsdk:"log_queries"`
 }
 
 func (d *dnsSettingsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {

@@ -58,7 +58,7 @@ func NewClient(baseURL, username, password string) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("login request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -129,7 +129,7 @@ func (c *Client) doRequest(method, endpoint string, params url.Values) (map[stri
 	if err != nil {
 		return nil, fmt.Errorf("request to %s failed: %w", endpoint, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -27,27 +27,27 @@ type dnsSettingsResource struct {
 }
 
 type dnsSettingsResourceModel struct {
-	ID                    types.String `tfsdk:"id"`
-	DnsServerDomain       types.String `tfsdk:"dns_server_domain"`
-	DefaultRecordTtl      types.Int64  `tfsdk:"default_record_ttl"`
-	PreferIPv6            types.Bool   `tfsdk:"prefer_ipv6"`
-	DnssecValidation      types.Bool   `tfsdk:"dnssec_validation"`
-	QnameMinimization     types.Bool   `tfsdk:"qname_minimization"`
-	RandomizeName         types.Bool   `tfsdk:"randomize_name"`
-	Recursion             types.String `tfsdk:"recursion"`
-	ServeStale            types.Bool   `tfsdk:"serve_stale"`
-	CacheMaximumEntries   types.Int64  `tfsdk:"cache_maximum_entries"`
-	CacheMinimumRecordTtl types.Int64  `tfsdk:"cache_minimum_record_ttl"`
-	CacheMaximumRecordTtl types.Int64  `tfsdk:"cache_maximum_record_ttl"`
-	CacheNegativeRecordTtl types.Int64 `tfsdk:"cache_negative_record_ttl"`
-	EnableBlocking        types.Bool   `tfsdk:"enable_blocking"`
-	BlockingType          types.String `tfsdk:"blocking_type"`
-	BlockListUrls         types.List   `tfsdk:"block_list_urls"`
-	Forwarders            types.List   `tfsdk:"forwarders"`
-	ForwarderProtocol     types.String `tfsdk:"forwarder_protocol"`
-	EnableLogging         types.Bool   `tfsdk:"enable_logging"`
-	LogQueries            types.Bool   `tfsdk:"log_queries"`
-	MaxLogFileDays        types.Int64  `tfsdk:"max_log_file_days"`
+	ID                     types.String `tfsdk:"id"`
+	DnsServerDomain        types.String `tfsdk:"dns_server_domain"`
+	DefaultRecordTtl       types.Int64  `tfsdk:"default_record_ttl"`
+	PreferIPv6             types.Bool   `tfsdk:"prefer_ipv6"`
+	DnssecValidation       types.Bool   `tfsdk:"dnssec_validation"`
+	QnameMinimization      types.Bool   `tfsdk:"qname_minimization"`
+	RandomizeName          types.Bool   `tfsdk:"randomize_name"`
+	Recursion              types.String `tfsdk:"recursion"`
+	ServeStale             types.Bool   `tfsdk:"serve_stale"`
+	CacheMaximumEntries    types.Int64  `tfsdk:"cache_maximum_entries"`
+	CacheMinimumRecordTtl  types.Int64  `tfsdk:"cache_minimum_record_ttl"`
+	CacheMaximumRecordTtl  types.Int64  `tfsdk:"cache_maximum_record_ttl"`
+	CacheNegativeRecordTtl types.Int64  `tfsdk:"cache_negative_record_ttl"`
+	EnableBlocking         types.Bool   `tfsdk:"enable_blocking"`
+	BlockingType           types.String `tfsdk:"blocking_type"`
+	BlockListUrls          types.List   `tfsdk:"block_list_urls"`
+	Forwarders             types.List   `tfsdk:"forwarders"`
+	ForwarderProtocol      types.String `tfsdk:"forwarder_protocol"`
+	EnableLogging          types.Bool   `tfsdk:"enable_logging"`
+	LogQueries             types.Bool   `tfsdk:"log_queries"`
+	MaxLogFileDays         types.Int64  `tfsdk:"max_log_file_days"`
 }
 
 func (r *dnsSettingsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {

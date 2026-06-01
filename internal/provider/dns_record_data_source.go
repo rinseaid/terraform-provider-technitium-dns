@@ -214,19 +214,20 @@ func (d *dnsRecordsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 		rData, _ := rec["rData"].(map[string]interface{})
 		if rData != nil {
-			if recType == "MX" {
+			switch recType {
+			case "MX":
 				if pref, ok := rData["preference"].(float64); ok && pref > 0 {
 					entry.Priority = types.Int64Value(int64(pref))
 				} else {
 					entry.Priority = types.Int64Null()
 				}
-			} else if recType == "SRV" {
+			case "SRV":
 				if prio, ok := rData["priority"].(float64); ok && prio > 0 {
 					entry.Priority = types.Int64Value(int64(prio))
 				} else {
 					entry.Priority = types.Int64Null()
 				}
-			} else {
+			default:
 				entry.Priority = types.Int64Null()
 			}
 		} else {

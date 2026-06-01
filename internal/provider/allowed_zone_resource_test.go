@@ -11,7 +11,7 @@ import (
 func TestAccAllowedZoneResource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckAllowedZoneDestroy("allow-basic-test.example"),
+		CheckDestroy:             testAccCheckAllowedZoneDestroy("allow-basic-test.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAllowedZoneConfig("allow-basic-test.example"),
@@ -26,7 +26,7 @@ func TestAccAllowedZoneResource_basic(t *testing.T) {
 func TestAccAllowedZoneResource_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckAllowedZoneDestroy("allow-import-test.example"),
+		CheckDestroy:             testAccCheckAllowedZoneDestroy("allow-import-test.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAllowedZoneConfig("allow-import-test.example"),
@@ -45,7 +45,7 @@ func TestAccAllowedZoneResource_import(t *testing.T) {
 func TestAccAllowedZonesDataSource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckAllowedZoneDestroy("allow-datasource-test.example"),
+		CheckDestroy:             testAccCheckAllowedZoneDestroy("allow-datasource-test.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAllowedZonesDataSourceConfig("allow-datasource-test.example"),

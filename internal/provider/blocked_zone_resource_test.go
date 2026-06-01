@@ -11,7 +11,7 @@ import (
 func TestAccBlockedZoneResource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckBlockedZoneDestroy("block-basic-test.example"),
+		CheckDestroy:             testAccCheckBlockedZoneDestroy("block-basic-test.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccBlockedZoneConfig("block-basic-test.example"),
@@ -26,7 +26,7 @@ func TestAccBlockedZoneResource_basic(t *testing.T) {
 func TestAccBlockedZoneResource_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckBlockedZoneDestroy("block-import-test.example"),
+		CheckDestroy:             testAccCheckBlockedZoneDestroy("block-import-test.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccBlockedZoneConfig("block-import-test.example"),
@@ -45,7 +45,7 @@ func TestAccBlockedZoneResource_import(t *testing.T) {
 func TestAccBlockedZonesDataSource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckBlockedZoneDestroy("block-datasource-test.example"),
+		CheckDestroy:             testAccCheckBlockedZoneDestroy("block-datasource-test.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccBlockedZonesDataSourceConfig("block-datasource-test.example"),

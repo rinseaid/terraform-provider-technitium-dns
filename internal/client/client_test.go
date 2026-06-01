@@ -20,13 +20,13 @@ func newTestServer() *httptest.Server {
 		user := r.FormValue("user")
 		pass := r.FormValue("pass")
 		if user == "admin" && pass == "admin" {
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"status": "ok",
 				"token":  "test-token-abc123",
 			})
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":       "error",
 			"errorMessage": "invalid credentials",
 		})
@@ -35,12 +35,12 @@ func newTestServer() *httptest.Server {
 	mux.HandleFunc("/api/zones/list", func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 		if auth != "Bearer test-token-abc123" {
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"status": "invalid-token",
 			})
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
 				"zones": []interface{}{
@@ -61,7 +61,7 @@ func newTestServer() *httptest.Server {
 
 	mux.HandleFunc("/api/zones/create", func(w http.ResponseWriter, r *http.Request) {
 		zone := r.URL.Query().Get("zone")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
 				"domain": zone,
@@ -70,7 +70,7 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/zones/delete", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":   "ok",
 			"response": map[string]interface{}{},
 		})
@@ -78,7 +78,7 @@ func newTestServer() *httptest.Server {
 
 	mux.HandleFunc("/api/zones/records/get", func(w http.ResponseWriter, r *http.Request) {
 		domain := r.URL.Query().Get("domain")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
 				"zone": map[string]interface{}{
@@ -100,7 +100,7 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/zones/records/add", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
 				"addedRecord": map[string]interface{}{
@@ -112,7 +112,7 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/zones/records/update", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
 				"updatedRecord": map[string]interface{}{
@@ -124,14 +124,14 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/zones/records/delete", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":   "ok",
 			"response": map[string]interface{}{},
 		})
 	})
 
 	mux.HandleFunc("/api/dhcp/scopes/list", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
 				"scopes": []interface{}{
@@ -148,7 +148,7 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/dhcp/scopes/get", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
 				"name":            r.URL.Query().Get("name"),
@@ -160,28 +160,28 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/dhcp/scopes/set", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":   "ok",
 			"response": map[string]interface{}{},
 		})
 	})
 
 	mux.HandleFunc("/api/dhcp/scopes/delete", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":   "ok",
 			"response": map[string]interface{}{},
 		})
 	})
 
 	mux.HandleFunc("/api/dhcp/scopes/addReservedLease", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":   "ok",
 			"response": map[string]interface{}{},
 		})
 	})
 
 	mux.HandleFunc("/api/dhcp/scopes/removeReservedLease", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":   "ok",
 			"response": map[string]interface{}{},
 		})

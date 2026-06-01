@@ -294,7 +294,7 @@ func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScope
 	days := leaseSeconds / 86400
 	remainder := leaseSeconds % 86400
 	hours := remainder / 3600
-	remainder = remainder % 3600
+	remainder %= 3600
 	minutes := remainder / 60
 	params.Set("leaseTimeDays", fmt.Sprintf("%d", days))
 	params.Set("leaseTimeHours", fmt.Sprintf("%d", hours))

@@ -21,8 +21,8 @@ type dhcpLeasesDataSource struct {
 }
 
 type dhcpLeasesDataSourceModel struct {
-	ScopeName types.String       `tfsdk:"scope_name"`
-	Leases    []dhcpLeaseModel   `tfsdk:"leases"`
+	ScopeName types.String     `tfsdk:"scope_name"`
+	Leases    []dhcpLeaseModel `tfsdk:"leases"`
 }
 
 type dhcpLeaseModel struct {

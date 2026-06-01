@@ -11,7 +11,7 @@ import (
 func TestAccDNSZoneResource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckDNSZoneDestroy("testzone-basic.example"),
+		CheckDestroy:             testAccCheckDNSZoneDestroy("testzone-basic.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDNSZoneConfig("testzone-basic.example", "Primary", false),
@@ -29,7 +29,7 @@ func TestAccDNSZoneResource_basic(t *testing.T) {
 func TestAccDNSZoneResource_disabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckDNSZoneDestroy("testzone-disabled.example"),
+		CheckDestroy:             testAccCheckDNSZoneDestroy("testzone-disabled.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDNSZoneConfig("testzone-disabled.example", "Primary", true),
@@ -46,7 +46,7 @@ func TestAccDNSZoneResource_disabled(t *testing.T) {
 func TestAccDNSZoneResource_updateDisabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckDNSZoneDestroy("testzone-update.example"),
+		CheckDestroy:             testAccCheckDNSZoneDestroy("testzone-update.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDNSZoneConfig("testzone-update.example", "Primary", false),
@@ -69,7 +69,7 @@ func TestAccDNSZoneResource_updateDisabled(t *testing.T) {
 func TestAccDNSZoneResource_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckDNSZoneDestroy("testzone-import.example"),
+		CheckDestroy:             testAccCheckDNSZoneDestroy("testzone-import.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDNSZoneConfig("testzone-import.example", "Primary", false),
@@ -88,7 +88,7 @@ func TestAccDNSZoneResource_import(t *testing.T) {
 func TestAccDNSZonesDataSource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
-		CheckDestroy:            testAccCheckDNSZoneDestroy("testzone-datasource.example"),
+		CheckDestroy:             testAccCheckDNSZoneDestroy("testzone-datasource.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDNSZonesDataSourceConfig("testzone-datasource.example"),
