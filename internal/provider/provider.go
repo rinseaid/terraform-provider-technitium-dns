@@ -159,6 +159,8 @@ func (p *TechnitiumProvider) Resources(_ context.Context) []func() resource.Reso
 		NewDNSZoneResource,
 		NewDNSRecordResource,
 		NewDNSSettingsResource,
+		NewTSIGKeyResource,
+		NewCatalogZoneMembershipResource,
 		NewDHCPScopeResource,
 		NewDHCPReservedLeaseResource,
 		NewAllowedZoneResource,
@@ -170,6 +172,7 @@ func (p *TechnitiumProvider) DataSources(_ context.Context) []func() datasource.
 	return []func() datasource.DataSource{
 		NewDNSZonesDataSource,
 		NewDNSRecordsDataSource,
+		NewDNSSettingsDataSource,
 		NewDHCPScopesDataSource,
 		NewDHCPLeasesDataSource,
 		NewAllowedZonesDataSource,

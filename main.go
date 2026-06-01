@@ -9,7 +9,7 @@ import (
 	"github.com/rinseaid/terraform-provider-technitium-dns/internal/provider"
 )
 
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name technitium-dns
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name technitium
 
 var version = "dev"
 

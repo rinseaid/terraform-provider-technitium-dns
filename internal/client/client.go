@@ -423,3 +423,13 @@ func (c *Client) GetDNSSettings() (map[string]interface{}, error) {
 func (c *Client) SetDNSSettings(params url.Values) (map[string]interface{}, error) {
 	return c.doRequest(http.MethodGet, "settings/set", params)
 }
+
+// GetTSIGKeyNames returns TSIG key names configured on the server.
+func (c *Client) GetTSIGKeyNames() (map[string]interface{}, error) {
+	return c.doRequest(http.MethodGet, "settings/getTsigKeyNames", nil)
+}
+
+// ListCatalogZones returns the list of catalog zone names.
+func (c *Client) ListCatalogZones() (map[string]interface{}, error) {
+	return c.doRequest(http.MethodGet, "zones/catalogs/list", nil)
+}
