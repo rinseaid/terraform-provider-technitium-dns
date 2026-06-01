@@ -416,10 +416,10 @@ func (c *Client) DeleteBlockedZone(domain string) (map[string]interface{}, error
 
 // GetDNSSettings returns the DNS server settings.
 func (c *Client) GetDNSSettings() (map[string]interface{}, error) {
-	return nil, errors.New("GetDNSSettings: not implemented")
+	return c.doRequest(http.MethodGet, "settings/get", nil)
 }
 
 // SetDNSSettings updates the DNS server settings.
 func (c *Client) SetDNSSettings(params url.Values) (map[string]interface{}, error) {
-	return nil, errors.New("SetDNSSettings: not implemented")
+	return c.doRequest(http.MethodGet, "settings/set", params)
 }

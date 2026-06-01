@@ -158,6 +158,7 @@ func (p *TechnitiumProvider) Resources(_ context.Context) []func() resource.Reso
 	return []func() resource.Resource{
 		NewDNSZoneResource,
 		NewDNSRecordResource,
+		NewDNSSettingsResource,
 		NewDHCPScopeResource,
 		NewDHCPReservedLeaseResource,
 		NewAllowedZoneResource,

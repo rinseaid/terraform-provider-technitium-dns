@@ -37,6 +37,7 @@ lint:
 
 docs:
 	go generate ./...
+	@echo "Docs generated in docs/"
 
 clean:
 	rm -f ${BINARY}
