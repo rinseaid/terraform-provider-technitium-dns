@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/rinseaid/terraform-provider-technitium/internal/client"
+	"github.com/rinseaid/terraform-provider-technitium-dns/internal/client"
 )
 
 var _ resource.Resource = &dnsSettingsResource{}

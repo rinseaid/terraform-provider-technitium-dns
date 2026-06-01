@@ -1,11 +1,11 @@
-# terraform-provider-technitium
+# terraform-provider-technitium-dns
 
 Terraform/OpenTofu provider for Technitium DNS Server.
 
 ## Project Details
 
-- Provider name: terraform-provider-technitium
-- Registry: planned for OpenTofu registry under rinseaid/technitium
+- Provider name: terraform-provider-technitium-dns
+- Registry: planned for OpenTofu registry under rinseaid/technitium-dns
 - API docs reference: APIDOCS.md in repo root (downloaded from TechnitiumSoftware/DnsServer)
 - Built with Terraform Plugin Framework (not SDKv2)
 - Target Technitium DNS Server v14.x API

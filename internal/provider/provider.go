@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/rinseaid/terraform-provider-technitium/internal/client"
+	"github.com/rinseaid/terraform-provider-technitium-dns/internal/client"
 )
 
 var _ provider.Provider = &TechnitiumProvider{}

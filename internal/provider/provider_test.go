@@ -8,7 +8,7 @@ import (
 	fwprovider "github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	"github.com/rinseaid/terraform-provider-technitium/internal/client"
+	"github.com/rinseaid/terraform-provider-technitium-dns/internal/client"
 )
 
 func testAccProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer, error) {

@@ -1,6 +1,6 @@
 HOSTNAME=registry.opentofu.org
 NAMESPACE=rinseaid
-NAME=technitium
+NAME=technitium-dns
 BINARY=terraform-provider-${NAME}
 VERSION=0.1.0
 OS_ARCH=$(shell go env GOOS)_$(shell go env GOARCH)

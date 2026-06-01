@@ -6,10 +6,10 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/rinseaid/terraform-provider-technitium/internal/provider"
+	"github.com/rinseaid/terraform-provider-technitium-dns/internal/provider"
 )
 
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name technitium
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name technitium-dns
 
 var version = "dev"
 
@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.opentofu.org/rinseaid/technitium",
+		Address: "registry.opentofu.org/rinseaid/technitium-dns",
 		Debug:   debug,
 	}
 

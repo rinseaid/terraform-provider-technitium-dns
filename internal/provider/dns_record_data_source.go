@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/rinseaid/terraform-provider-technitium/internal/client"
+	"github.com/rinseaid/terraform-provider-technitium-dns/internal/client"
 )
 
 var _ datasource.DataSource = &dnsRecordsDataSource{}

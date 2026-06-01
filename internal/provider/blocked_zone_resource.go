@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/rinseaid/terraform-provider-technitium/internal/client"
+	"github.com/rinseaid/terraform-provider-technitium-dns/internal/client"
 )
 
 var (

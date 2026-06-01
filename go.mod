@@ -1,4 +1,4 @@
-module github.com/rinseaid/terraform-provider-technitium
+module github.com/rinseaid/terraform-provider-technitium-dns
 
 go 1.25.8
 
