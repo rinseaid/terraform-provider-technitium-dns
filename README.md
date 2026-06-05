@@ -67,6 +67,19 @@ resource "technitium_dns_zone" "example" {
 
 Zone types: `Primary`, `Secondary`, `Stub`, `Forwarder`, `SecondaryForwarder`, `Catalog`, `SecondaryCatalog`.
 
+Zone options for transfer and access control:
+
+```hcl
+resource "technitium_dns_zone" "restricted" {
+  name          = "internal.example.com"
+  type          = "Primary"
+  zone_transfer = "AllowOnlyZoneNameServers"
+  notify        = "ZoneNameServers"
+  query_access  = "AllowOnlyPrivateNetworks"
+  update        = "Deny"
+}
+```
+
 ### technitium_dns_record
 
 ```hcl
@@ -84,6 +97,33 @@ resource "technitium_dns_record" "mail" {
   type     = "MX"
   value    = "mail.example.com"
   priority = 10
+}
+```
+
+SRV records support `priority`, `weight`, and `port` fields:
+
+```hcl
+resource "technitium_dns_record" "sip" {
+  zone     = technitium_dns_zone.example.name
+  domain   = "_sip._tcp.example.com"
+  type     = "SRV"
+  value    = "sip.example.com"
+  priority = 10
+  weight   = 60
+  port     = 5060
+}
+```
+
+FWD records configure zone-level forwarders (requires a Forwarder zone):
+
+```hcl
+resource "technitium_dns_record" "forwarder" {
+  zone     = technitium_dns_zone.example.name
+  domain   = "example.com"
+  type     = "FWD"
+  value    = "1.1.1.1"
+  ttl      = 0
+  protocol = "Udp"
 }
 ```
 
@@ -143,6 +183,23 @@ resource "technitium_dhcp_scope" "lan" {
   dns_servers    = ["192.168.1.1"]
   domain_name    = "home.local"
   lease_time     = 86400
+}
+```
+
+Advanced DHCP options (exclusions, DNS updates, PXE boot, search domains):
+
+```hcl
+resource "technitium_dhcp_scope" "advanced" {
+  name                            = "Advanced"
+  start_address                   = "10.0.0.100"
+  end_address                     = "10.0.0.200"
+  subnet_mask                     = "255.255.255.0"
+  router_address                  = "10.0.0.1"
+  exclusions                      = "10.0.0.150|10.0.0.160"
+  domain_search_list              = ["home.local", "corp.local"]
+  dns_updates                     = true
+  dns_ttl                         = 300
+  ignore_client_identifier_option = true
 }
 ```
 

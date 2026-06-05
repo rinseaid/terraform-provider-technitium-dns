@@ -172,11 +172,19 @@ func (c *Client) ListZones() (map[string]interface{}, error) {
 
 // CreateZone creates a new authoritative zone. The zoneType must be one of
 // Primary, Secondary, Stub, Forwarder, SecondaryForwarder, Catalog, or
-// SecondaryCatalog.
-func (c *Client) CreateZone(zone, zoneType string) (map[string]interface{}, error) {
+// SecondaryCatalog. Extra params are passed through (e.g. forwarder, protocol
+// for Forwarder zones).
+func (c *Client) CreateZone(zone, zoneType string, extra ...url.Values) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
 	params.Set("type", zoneType)
+	for _, e := range extra {
+		for k, vs := range e {
+			for _, v := range vs {
+				params.Set(k, v)
+			}
+		}
+	}
 	return c.doRequest(http.MethodGet, "zones/create", params)
 }
 

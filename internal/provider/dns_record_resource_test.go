@@ -197,6 +197,7 @@ resource "technitium_dns_record" "test" {
   domain   = "testfwd.example"
   type     = "FWD"
   value    = "1.1.1.1"
+  ttl      = 0
   protocol = "Udp"
 }
 `,

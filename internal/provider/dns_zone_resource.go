@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
-
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -152,7 +152,13 @@ func (r *dnsZoneResource) Create(ctx context.Context, req resource.CreateRequest
 		"type": plan.Type.ValueString(),
 	})
 
-	_, err := r.client.CreateZone(plan.Name.ValueString(), plan.Type.ValueString())
+	var createExtra url.Values
+	if plan.Type.ValueString() == "Forwarder" || plan.Type.ValueString() == "SecondaryForwarder" {
+		createExtra = url.Values{}
+		createExtra.Set("forwarder", "this-server")
+		createExtra.Set("protocol", "Udp")
+	}
+	_, err := r.client.CreateZone(plan.Name.ValueString(), plan.Type.ValueString(), createExtra)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating DNS Zone",
@@ -423,17 +429,17 @@ func (r *dnsZoneResource) readIntoModel(ctx context.Context, model *dnsZoneResou
 	} else {
 		model.Notify = types.StringValue("None")
 	}
-	if v, ok := response["notifyNameServers"].(string); ok && v != "" {
+	if v := joinStringList(response["notifyNameServers"]); v != "" {
 		model.NotifyNameServers = types.StringValue(v)
 	} else if !model.NotifyNameServers.IsNull() {
 		model.NotifyNameServers = types.StringNull()
 	}
-	if v, ok := response["zoneTransferNetworkACL"].(string); ok && v != "" {
+	if v := joinStringList(response["zoneTransferNetworkACL"]); v != "" {
 		model.ZoneTransferNetworkACL = types.StringValue(v)
 	} else if !model.ZoneTransferNetworkACL.IsNull() {
 		model.ZoneTransferNetworkACL = types.StringNull()
 	}
-	if v, ok := response["zoneTransferTsigKeyNames"].(string); ok && v != "" {
+	if v := joinStringList(response["zoneTransferTsigKeyNames"]); v != "" {
 		model.ZoneTransferTSIGKeyNames = types.StringValue(v)
 	} else if !model.ZoneTransferTSIGKeyNames.IsNull() {
 		model.ZoneTransferTSIGKeyNames = types.StringNull()
@@ -450,4 +456,18 @@ func (r *dnsZoneResource) readIntoModel(ctx context.Context, model *dnsZoneResou
 	}
 
 	return
+}
+
+func joinStringList(v interface{}) string {
+	arr, ok := v.([]interface{})
+	if !ok || len(arr) == 0 {
+		return ""
+	}
+	strs := make([]string, 0, len(arr))
+	for _, item := range arr {
+		if s, ok := item.(string); ok && s != "" {
+			strs = append(strs, s)
+		}
+	}
+	return strings.Join(strs, ",")
 }

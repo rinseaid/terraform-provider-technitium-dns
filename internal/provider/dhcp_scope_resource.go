@@ -128,6 +128,7 @@ func (r *dhcpScopeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"ping_check_retries": schema.Int64Attribute{
 				Description: "Maximum number of ping requests to try before assigning an IP address.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"domain_search_list": schema.ListAttribute{
 				Description: "List of domain names clients can use as search suffixes (DHCP option 119).",
@@ -137,10 +138,12 @@ func (r *dhcpScopeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"dns_updates": schema.BoolAttribute{
 				Description: "Allow the DHCP server to automatically update forward and reverse DNS entries for clients.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"dns_ttl": schema.Int64Attribute{
 				Description: "TTL value in seconds for auto-created forward and reverse DNS records.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"boot_file_name": schema.StringAttribute{
 				Description: "Boot file name on the TFTP server for PXE clients (DHCP option 67).",
@@ -158,6 +161,7 @@ func (r *dhcpScopeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"ignore_client_identifier_option": schema.BoolAttribute{
 				Description: "Always use client MAC address as identifier instead of Client Identifier (option 61).",
 				Optional:    true,
+				Computed:    true,
 			},
 		},
 	}
@@ -505,8 +509,28 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 		model.TFTPServerAddresses = types.ListNull(types.StringType)
 	}
 
-	if v, ok := scopeData["exclusions"]; ok && v != nil && v != "" {
-		model.Exclusions = types.StringValue(v.(string))
+	if v, ok := scopeData["exclusions"]; ok && v != nil {
+		if ranges, ok := v.([]interface{}); ok && len(ranges) > 0 {
+			var parts []string
+			for _, r := range ranges {
+				rMap, ok := r.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				start, _ := rMap["startingAddress"].(string)
+				end, _ := rMap["endingAddress"].(string)
+				if start != "" && end != "" {
+					parts = append(parts, start, end)
+				}
+			}
+			if len(parts) > 0 {
+				model.Exclusions = types.StringValue(strings.Join(parts, "|"))
+			} else {
+				model.Exclusions = types.StringNull()
+			}
+		} else if !model.Exclusions.IsNull() {
+			model.Exclusions = types.StringNull()
+		}
 	} else if !model.Exclusions.IsNull() {
 		model.Exclusions = types.StringNull()
 	}
