@@ -61,6 +61,7 @@ func (r *dhcpReservedLeaseResource) Schema(_ context.Context, _ resource.SchemaR
 			"hardware_address": schema.StringAttribute{
 				Description: "The MAC address of the client device. Stored in lowercase colon-separated format.",
 				Required:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					normalizeMACModifier{},
 					stringplanmodifier.RequiresReplace(),
