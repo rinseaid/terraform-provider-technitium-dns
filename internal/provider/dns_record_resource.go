@@ -570,7 +570,7 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 		if stringFromMap(rec, "type") != recType {
 			continue
 		}
-		if recordValueFromRData(rec, recType) == recValue {
+		if strings.EqualFold(recordValueFromRData(rec, recType), recValue) {
 			found = rec
 			break
 		}
@@ -583,6 +583,11 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 				model.Domain.ValueString(), recType, recValue, model.Zone.ValueString()),
 		)
 		return
+	}
+
+	apiValue := recordValueFromRData(found, recType)
+	if apiValue != "" && !strings.EqualFold(apiValue, model.Value.ValueString()) {
+		model.Value = types.StringValue(apiValue)
 	}
 
 	if ttl, ok := found["ttl"].(float64); ok {
@@ -718,7 +723,9 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 				model.SshfpFingerprintType = types.Int64Value(int64(v))
 			}
 			if v, ok := rData["fingerprint"].(string); ok && v != "" {
-				model.SshfpFingerprint = types.StringValue(strings.ToUpper(v))
+				if !strings.EqualFold(v, model.SshfpFingerprint.ValueString()) {
+					model.SshfpFingerprint = types.StringValue(v)
+				}
 			} else if !model.SshfpFingerprint.IsNull() {
 				model.SshfpFingerprint = types.StringNull()
 			}
@@ -739,7 +746,9 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 				model.TlsaMatchingType = types.StringNull()
 			}
 			if v, ok := rData["certificateAssociationData"].(string); ok && v != "" {
-				model.TlsaCertificateAssociationData = types.StringValue(strings.ToUpper(v))
+				if !strings.EqualFold(v, model.TlsaCertificateAssociationData.ValueString()) {
+					model.TlsaCertificateAssociationData = types.StringValue(v)
+				}
 			} else if !model.TlsaCertificateAssociationData.IsNull() {
 				model.TlsaCertificateAssociationData = types.StringNull()
 			}
@@ -770,7 +779,9 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 				model.DsDigestType = types.Int64Value(int64(v))
 			}
 			if v, ok := rData["digest"].(string); ok && v != "" {
-				model.DsDigest = types.StringValue(strings.ToUpper(v))
+				if !strings.EqualFold(v, model.DsDigest.ValueString()) {
+					model.DsDigest = types.StringValue(v)
+				}
 			} else if !model.DsDigest.IsNull() {
 				model.DsDigest = types.StringNull()
 			}
