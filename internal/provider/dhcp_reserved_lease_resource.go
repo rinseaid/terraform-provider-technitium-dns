@@ -61,6 +61,7 @@ func (r *dhcpReservedLeaseResource) Schema(_ context.Context, _ resource.SchemaR
 			"hardware_address": schema.StringAttribute{
 				Description: "The MAC address of the client device.",
 				Required:    true,
+				CustomType:  macAddressType{},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
