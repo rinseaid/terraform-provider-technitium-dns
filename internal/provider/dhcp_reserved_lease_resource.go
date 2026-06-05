@@ -65,7 +65,7 @@ func (r *dhcpReservedLeaseResource) Schema(_ context.Context, _ resource.SchemaR
 				Required:    true,
 				CustomType:  macAddressType{},
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					requiresReplaceIfMACChanged{},
 				},
 			},
 			"address": schema.StringAttribute{

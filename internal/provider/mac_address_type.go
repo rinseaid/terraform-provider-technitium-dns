@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
@@ -79,4 +80,24 @@ func (v macAddressValue) StringSemanticEquals(_ context.Context, newValuable bas
 	}
 
 	return normalizeMAC(v.ValueString()) == normalizeMAC(newValue.ValueString()), diags
+}
+
+type requiresReplaceIfMACChanged struct{}
+
+func (m requiresReplaceIfMACChanged) Description(_ context.Context) string {
+	return "Requires replacement if the normalized MAC address changes."
+}
+
+func (m requiresReplaceIfMACChanged) MarkdownDescription(_ context.Context) string {
+	return "Requires replacement if the normalized MAC address changes."
+}
+
+func (m requiresReplaceIfMACChanged) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.StateValue.IsNull() || req.PlanValue.IsNull() {
+		resp.RequiresReplace = true
+		return
+	}
+	if normalizeMAC(req.StateValue.ValueString()) != normalizeMAC(req.PlanValue.ValueString()) {
+		resp.RequiresReplace = true
+	}
 }
