@@ -1,5 +1,6 @@
 terraform-provider-technitium
 terraform-provider-technitium-dns
+.DS_Store
 *.out
 *.html
 dist/
