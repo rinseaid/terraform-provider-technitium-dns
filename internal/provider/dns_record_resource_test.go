@@ -373,3 +373,365 @@ data "technitium_dns_records" "test" {
 		},
 	})
 }
+
+func TestAccDNSRecordResource_AAAA(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testaaaa.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "host.testaaaa.example"
+  type   = "AAAA"
+  value  = "2001:db8::1"
+  ttl    = 300
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "zone", "testaaaa.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "domain", "host.testaaaa.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "AAAA"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "2001:db8::1"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ttl", "300"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "disabled", "false"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "id", "testaaaa.example:host.testaaaa.example:AAAA:2001:db8::1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_NS(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testns.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "testns.example"
+  type   = "NS"
+  value  = "ns1.testns.example"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "zone", "testns.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "domain", "testns.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "NS"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "ns1.testns.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ttl", "3600"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "disabled", "false"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "id", "testns.example:testns.example:NS:ns1.testns.example"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_PTR(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "1.168.192.in-addr.arpa"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "100.1.168.192.in-addr.arpa"
+  type   = "PTR"
+  value  = "host.testptr.example"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "zone", "1.168.192.in-addr.arpa"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "domain", "100.1.168.192.in-addr.arpa"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "PTR"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "host.testptr.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ttl", "3600"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "disabled", "false"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "id", "1.168.192.in-addr.arpa:100.1.168.192.in-addr.arpa:PTR:host.testptr.example"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_CAA(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testcaa.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "testcaa.example"
+  type   = "CAA"
+  value  = "letsencrypt.org"
+  flags  = 0
+  tag    = "issue"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "zone", "testcaa.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "domain", "testcaa.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "CAA"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "letsencrypt.org"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "flags", "0"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "tag", "issue"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ttl", "3600"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "disabled", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_ANAME(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testaname.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone  = technitium_dns_zone.test.name
+  domain = "testaname.example"
+  type   = "ANAME"
+  value  = "target.testaname.example"
+  aname  = "target.testaname.example"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "zone", "testaname.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "domain", "testaname.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "ANAME"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "target.testaname.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "aname", "target.testaname.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ttl", "3600"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "disabled", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_DNAME(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testdname.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "sub.testdname.example"
+  type   = "DNAME"
+  value  = "otherdomain.example"
+  dname  = "otherdomain.example"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "zone", "testdname.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "domain", "sub.testdname.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "DNAME"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "otherdomain.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "dname", "otherdomain.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ttl", "3600"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "disabled", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_updateCNAME(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testupdatecname.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "alias.testupdatecname.example"
+  type   = "CNAME"
+  value  = "original.testupdatecname.example"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "original.testupdatecname.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "id", "testupdatecname.example:alias.testupdatecname.example:CNAME:original.testupdatecname.example"),
+				),
+			},
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testupdatecname.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "alias.testupdatecname.example"
+  type   = "CNAME"
+  value  = "updated.testupdatecname.example"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "updated.testupdatecname.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "id", "testupdatecname.example:alias.testupdatecname.example:CNAME:updated.testupdatecname.example"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_updateCAA(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testupdatecaa.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "testupdatecaa.example"
+  type   = "CAA"
+  value  = "letsencrypt.org"
+  flags  = 0
+  tag    = "issue"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "letsencrypt.org"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "flags", "0"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "tag", "issue"),
+				),
+			},
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testupdatecaa.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "testupdatecaa.example"
+  type   = "CAA"
+  value  = "sectigo.com"
+  flags  = 128
+  tag    = "issuewild"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "sectigo.com"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "flags", "128"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "tag", "issuewild"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_updateNS(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testupdatens.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "testupdatens.example"
+  type   = "NS"
+  value  = "ns1.testupdatens.example"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "ns1.testupdatens.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "id", "testupdatens.example:testupdatens.example:NS:ns1.testupdatens.example"),
+				),
+			},
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testupdatens.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone   = technitium_dns_zone.test.name
+  domain = "testupdatens.example"
+  type   = "NS"
+  value  = "ns2.testupdatens.example"
+  ttl    = 3600
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "ns2.testupdatens.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "id", "testupdatens.example:testupdatens.example:NS:ns2.testupdatens.example"),
+				),
+			},
+		},
+	})
+}

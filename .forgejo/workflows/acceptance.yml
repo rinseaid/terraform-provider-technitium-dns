@@ -1,0 +1,48 @@
+name: Acceptance Tests
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    services:
+      technitium:
+        image: technitium/dns-server:latest
+        env:
+          DNS_SERVER_DOMAIN: test.local
+          DNS_SERVER_ADMIN_PASSWORD: admin
+        ports:
+          - 5380:5380
+        options: >-
+          --health-cmd "curl -sf http://localhost:5380/ || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+          --health-start-period 10s
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for Technitium
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5380/api/user/login -d 'user=admin&pass=admin' | grep -q '"status":"ok"'; then
+              echo "Technitium is ready"
+              exit 0
+            fi
+            echo "Waiting for Technitium... ($i/30)"
+            sleep 2
+          done
+          echo "Technitium failed to start"
+          exit 1
+
+      - name: Run acceptance tests
+        env:
+          TF_ACC: "1"
+          TECHNITIUM_SERVER_URL: http://localhost:5380
+          TECHNITIUM_USERNAME: admin
+          TECHNITIUM_PASSWORD: admin
+        run: go test -count=1 -v -timeout 30m ./...

@@ -905,8 +905,7 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		params.Set("ipAddress", oldValue)
 		params.Set("newIpAddress", newValue)
 	case "CNAME":
-		params.Set("cname", oldValue)
-		params.Set("newCName", newValue)
+		params.Set("cname", newValue)
 	case "NS":
 		params.Set("nameServer", oldValue)
 		params.Set("newNameServer", newValue)
@@ -1023,8 +1022,7 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		params.Set("aname", oldValue)
 		params.Set("newAName", newValue)
 	case "DNAME":
-		params.Set("dname", oldValue)
-		params.Set("newDName", newValue)
+		params.Set("dname", newValue)
 	case "NAPTR":
 		if !state.NaptrOrder.IsNull() && !state.NaptrOrder.IsUnknown() {
 			params.Set("naptrOrder", fmt.Sprintf("%d", state.NaptrOrder.ValueInt64()))
