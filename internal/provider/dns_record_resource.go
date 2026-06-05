@@ -680,70 +680,74 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 				model.DName = types.StringNull()
 			}
 		case "NAPTR":
-			if v, ok := rData["naptrOrder"].(float64); ok {
+			if v, ok := rData["order"].(float64); ok {
 				model.NaptrOrder = types.Int64Value(int64(v))
 			}
-			if v, ok := rData["naptrPreference"].(float64); ok {
+			if v, ok := rData["preference"].(float64); ok {
 				model.NaptrPreference = types.Int64Value(int64(v))
 			}
-			if v, ok := rData["naptrFlags"].(string); ok && v != "" {
+			if v, ok := rData["flags"].(string); ok && v != "" {
 				model.NaptrFlags = types.StringValue(v)
 			} else if !model.NaptrFlags.IsNull() {
 				model.NaptrFlags = types.StringNull()
 			}
-			if v, ok := rData["naptrServices"].(string); ok && v != "" {
+			if v, ok := rData["services"].(string); ok && v != "" {
 				model.NaptrServices = types.StringValue(v)
 			} else if !model.NaptrServices.IsNull() {
 				model.NaptrServices = types.StringNull()
 			}
-			if v, ok := rData["naptrRegexp"].(string); ok && v != "" {
+			if v, ok := rData["regexp"].(string); ok && v != "" {
 				model.NaptrRegexp = types.StringValue(v)
 			} else if !model.NaptrRegexp.IsNull() {
 				model.NaptrRegexp = types.StringNull()
 			}
-			if v, ok := rData["naptrReplacement"].(string); ok && v != "" {
+			if v, ok := rData["replacement"].(string); ok && v != "" {
 				model.NaptrReplacement = types.StringValue(v)
 			} else if !model.NaptrReplacement.IsNull() {
 				model.NaptrReplacement = types.StringNull()
 			}
 		case "SSHFP":
-			if v, ok := rData["sshfpAlgorithm"].(float64); ok {
+			if v, ok := rData["algorithm"].(string); ok && v != "" {
+				model.SshfpAlgorithm = types.Int64Value(sshfpAlgorithmToInt(v))
+			} else if v, ok := rData["sshfpAlgorithm"].(float64); ok {
 				model.SshfpAlgorithm = types.Int64Value(int64(v))
 			}
-			if v, ok := rData["sshfpFingerprintType"].(float64); ok {
+			if v, ok := rData["fingerprintType"].(string); ok && v != "" {
+				model.SshfpFingerprintType = types.Int64Value(sshfpFingerprintTypeToInt(v))
+			} else if v, ok := rData["sshfpFingerprintType"].(float64); ok {
 				model.SshfpFingerprintType = types.Int64Value(int64(v))
 			}
-			if v, ok := rData["sshfpFingerprint"].(string); ok && v != "" {
-				model.SshfpFingerprint = types.StringValue(v)
+			if v, ok := rData["fingerprint"].(string); ok && v != "" {
+				model.SshfpFingerprint = types.StringValue(strings.ToUpper(v))
 			} else if !model.SshfpFingerprint.IsNull() {
 				model.SshfpFingerprint = types.StringNull()
 			}
 		case "TLSA":
-			if v, ok := rData["tlsaCertificateUsage"].(string); ok && v != "" {
+			if v, ok := rData["certificateUsage"].(string); ok && v != "" {
 				model.TlsaCertificateUsage = types.StringValue(v)
 			} else if !model.TlsaCertificateUsage.IsNull() {
 				model.TlsaCertificateUsage = types.StringNull()
 			}
-			if v, ok := rData["tlsaSelector"].(string); ok && v != "" {
+			if v, ok := rData["selector"].(string); ok && v != "" {
 				model.TlsaSelector = types.StringValue(v)
 			} else if !model.TlsaSelector.IsNull() {
 				model.TlsaSelector = types.StringNull()
 			}
-			if v, ok := rData["tlsaMatchingType"].(string); ok && v != "" {
+			if v, ok := rData["matchingType"].(string); ok && v != "" {
 				model.TlsaMatchingType = types.StringValue(v)
 			} else if !model.TlsaMatchingType.IsNull() {
 				model.TlsaMatchingType = types.StringNull()
 			}
-			if v, ok := rData["tlsaCertificateAssociationData"].(string); ok && v != "" {
-				model.TlsaCertificateAssociationData = types.StringValue(v)
+			if v, ok := rData["certificateAssociationData"].(string); ok && v != "" {
+				model.TlsaCertificateAssociationData = types.StringValue(strings.ToUpper(v))
 			} else if !model.TlsaCertificateAssociationData.IsNull() {
 				model.TlsaCertificateAssociationData = types.StringNull()
 			}
 		case "URI":
-			if v, ok := rData["uriPriority"].(float64); ok {
+			if v, ok := rData["priority"].(float64); ok {
 				model.UriPriority = types.Int64Value(int64(v))
 			}
-			if v, ok := rData["uriWeight"].(float64); ok {
+			if v, ok := rData["weight"].(float64); ok {
 				model.UriWeight = types.Int64Value(int64(v))
 			}
 			if v, ok := rData["uri"].(string); ok && v != "" {
@@ -755,14 +759,18 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 			if v, ok := rData["keyTag"].(float64); ok {
 				model.DsKeyTag = types.Int64Value(int64(v))
 			}
-			if v, ok := rData["algorithm"].(float64); ok {
+			if v, ok := rData["algorithmNumber"].(float64); ok {
+				model.DsAlgorithm = types.Int64Value(int64(v))
+			} else if v, ok := rData["algorithm"].(float64); ok {
 				model.DsAlgorithm = types.Int64Value(int64(v))
 			}
-			if v, ok := rData["digestType"].(float64); ok {
+			if v, ok := rData["digestTypeNumber"].(float64); ok {
+				model.DsDigestType = types.Int64Value(int64(v))
+			} else if v, ok := rData["digestType"].(float64); ok {
 				model.DsDigestType = types.Int64Value(int64(v))
 			}
 			if v, ok := rData["digest"].(string); ok && v != "" {
-				model.DsDigest = types.StringValue(v)
+				model.DsDigest = types.StringValue(strings.ToUpper(v))
 			} else if !model.DsDigest.IsNull() {
 				model.DsDigest = types.StringNull()
 			}
@@ -775,8 +783,18 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 			} else if !model.SvcTargetName.IsNull() {
 				model.SvcTargetName = types.StringNull()
 			}
-			if v, ok := rData["svcParams"].(string); ok && v != "" {
-				model.SvcParams = types.StringValue(v)
+			if v, ok := rData["svcParams"].(map[string]interface{}); ok && len(v) > 0 {
+				var parts []string
+				for key, val := range v {
+					if s, ok := val.(string); ok {
+						parts = append(parts, key, s)
+					}
+				}
+				if len(parts) > 0 {
+					model.SvcParams = types.StringValue(strings.Join(parts, "|"))
+				}
+			} else if sv, ok := rData["svcParams"].(string); ok && sv != "" {
+				model.SvcParams = types.StringValue(sv)
 			} else if !model.SvcParams.IsNull() {
 				model.SvcParams = types.StringNull()
 			}
@@ -838,13 +856,13 @@ func recordValueFromRData(rec map[string]interface{}, recordType string) string 
 		v, _ := rData["dname"].(string)
 		return v
 	case "NAPTR":
-		v, _ := rData["naptrReplacement"].(string)
+		v, _ := rData["replacement"].(string)
 		return v
 	case "SSHFP":
-		v, _ := rData["sshfpFingerprint"].(string)
+		v, _ := rData["fingerprint"].(string)
 		return v
 	case "TLSA":
-		v, _ := rData["tlsaCertificateAssociationData"].(string)
+		v, _ := rData["certificateAssociationData"].(string)
 		return v
 	case "URI":
 		v, _ := rData["uri"].(string)
@@ -1491,4 +1509,30 @@ func setValueParams(params url.Values, plan *dnsRecordResourceModel) {
 // compositeID builds the composite identifier from its components.
 func compositeID(zone, domain, recordType, value string) string {
 	return fmt.Sprintf("%s:%s:%s:%s", zone, domain, recordType, value)
+}
+
+func sshfpAlgorithmToInt(name string) int64 {
+	switch name {
+	case "RSA":
+		return 1
+	case "DSA":
+		return 2
+	case "ECDSA":
+		return 3
+	case "Ed25519":
+		return 4
+	default:
+		return 0
+	}
+}
+
+func sshfpFingerprintTypeToInt(name string) int64 {
+	switch name {
+	case "SHA1":
+		return 1
+	case "SHA256":
+		return 2
+	default:
+		return 0
+	}
 }

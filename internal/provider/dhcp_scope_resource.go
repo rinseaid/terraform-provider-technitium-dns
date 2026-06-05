@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/rinseaid/terraform-provider-technitium-dns/internal/client"
@@ -105,10 +106,13 @@ func (r *dhcpScopeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:    true,
 			},
 			"lease_time": schema.Int64Attribute{
-				Description: "Lease duration in seconds.",
+				Description: "Lease duration in seconds. Must be divisible by 60 (API resolution is minutes).",
 				Optional:    true,
 				Computed:    true,
 				Default:     int64default.StaticInt64(86400),
+				Validators: []validator.Int64{
+					int64DivisibleBy(60),
+				},
 			},
 			"offer_delay": schema.Int64Attribute{
 				Description: "Delay before sending DHCPOFFER in milliseconds.",
@@ -687,4 +691,34 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 	}
 
 	return
+}
+
+type int64DivisibleByValidator struct {
+	divisor int64
+}
+
+func int64DivisibleBy(divisor int64) int64DivisibleByValidator {
+	return int64DivisibleByValidator{divisor: divisor}
+}
+
+func (v int64DivisibleByValidator) Description(_ context.Context) string {
+	return fmt.Sprintf("value must be divisible by %d", v.divisor)
+}
+
+func (v int64DivisibleByValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v int64DivisibleByValidator) ValidateInt64(_ context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	val := req.ConfigValue.ValueInt64()
+	if val%v.divisor != 0 {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Invalid Value",
+			fmt.Sprintf("Value %d must be divisible by %d.", val, v.divisor),
+		)
+	}
 }

@@ -121,19 +121,19 @@ func TestRecordValueFromRData(t *testing.T) {
 		{
 			name:       "NAPTR record",
 			recordType: "NAPTR",
-			rData:      map[string]interface{}{"naptrReplacement": "sip.example.com", "naptrOrder": float64(100), "naptrPreference": float64(10), "naptrFlags": "s", "naptrServices": "SIP+D2U", "naptrRegexp": ""},
+			rData:      map[string]interface{}{"replacement": "sip.example.com", "order": float64(100), "preference": float64(10), "flags": "s", "services": "SIP+D2U", "regexp": ""},
 			want:       "sip.example.com",
 		},
 		{
 			name:       "SSHFP record",
 			recordType: "SSHFP",
-			rData:      map[string]interface{}{"sshfpFingerprint": "abc123def456", "sshfpAlgorithm": float64(1), "sshfpFingerprintType": float64(2)},
+			rData:      map[string]interface{}{"fingerprint": "abc123def456", "algorithm": "RSA", "fingerprintType": "SHA256"},
 			want:       "abc123def456",
 		},
 		{
 			name:       "TLSA record",
 			recordType: "TLSA",
-			rData:      map[string]interface{}{"tlsaCertificateAssociationData": "abc123", "tlsaCertificateUsage": "DANE-EE", "tlsaSelector": "SPKI", "tlsaMatchingType": "SHA2-256"},
+			rData:      map[string]interface{}{"certificateAssociationData": "abc123", "certificateUsage": "DANE-EE", "selector": "SPKI", "matchingType": "SHA2-256"},
 			want:       "abc123",
 		},
 		{

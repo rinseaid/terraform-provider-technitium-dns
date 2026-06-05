@@ -735,3 +735,282 @@ resource "technitium_dns_record" "test" {
 		},
 	})
 }
+
+func TestAccDNSRecordResource_NAPTR(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testnaptr.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone              = technitium_dns_zone.test.name
+  domain            = "testnaptr.example"
+  type              = "NAPTR"
+  value             = "_sip._udp.testnaptr.example"
+  naptr_order       = 100
+  naptr_preference  = 10
+  naptr_flags       = "S"
+  naptr_services    = "SIP+D2U"
+  naptr_replacement = "_sip._udp.testnaptr.example"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "NAPTR"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "naptr_order", "100"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "naptr_preference", "10"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "naptr_flags", "S"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "naptr_services", "SIP+D2U"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "naptr_replacement", "_sip._udp.testnaptr.example"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_SSHFP(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testsshfp.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone                  = technitium_dns_zone.test.name
+  domain                = "host.testsshfp.example"
+  type                  = "SSHFP"
+  value                 = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
+  sshfp_algorithm       = 4
+  sshfp_fingerprint_type = 2
+  sshfp_fingerprint     = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "SSHFP"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "sshfp_algorithm", "4"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "sshfp_fingerprint_type", "2"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "sshfp_fingerprint", "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_TLSA(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testtlsa.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone                             = technitium_dns_zone.test.name
+  domain                           = "_443._tcp.testtlsa.example"
+  type                             = "TLSA"
+  value                            = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
+  tlsa_certificate_usage           = "DANE-EE"
+  tlsa_selector                    = "SPKI"
+  tlsa_matching_type               = "SHA2-256"
+  tlsa_certificate_association_data = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "TLSA"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "tlsa_certificate_usage", "DANE-EE"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "tlsa_selector", "SPKI"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "tlsa_matching_type", "SHA2-256"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "tlsa_certificate_association_data", "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_URI(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testuri.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone         = technitium_dns_zone.test.name
+  domain       = "_ftp._tcp.testuri.example"
+  type         = "URI"
+  value        = "ftp://ftp.testuri.example/public"
+  uri_priority = 10
+  uri_weight   = 1
+  uri          = "ftp://ftp.testuri.example/public"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "URI"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "uri_priority", "10"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "uri_weight", "1"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "uri", "ftp://ftp.testuri.example/public"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_DS(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testds.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone           = technitium_dns_zone.test.name
+  domain         = "sub.testds.example"
+  type           = "DS"
+  value          = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
+  ds_key_tag     = 12345
+  ds_algorithm   = 13
+  ds_digest_type = 2
+  ds_digest      = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "DS"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ds_key_tag", "12345"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ds_algorithm", "13"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ds_digest_type", "2"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "ds_digest", "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_SVCB(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testsvcb.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone            = technitium_dns_zone.test.name
+  domain          = "_dns.testsvcb.example"
+  type            = "SVCB"
+  value           = "dns.testsvcb.example"
+  svc_priority    = 1
+  svc_target_name = "dns.testsvcb.example"
+  svc_params      = "alpn|dot"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "SVCB"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "svc_priority", "1"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "svc_target_name", "dns.testsvcb.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "svc_params", "alpn|dot"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_HTTPS(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testhttps.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone            = technitium_dns_zone.test.name
+  domain          = "testhttps.example"
+  type            = "HTTPS"
+  value           = "cdn.testhttps.example"
+  svc_priority    = 1
+  svc_target_name = "cdn.testhttps.example"
+  svc_params      = "alpn|h2,h3"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "HTTPS"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "svc_priority", "1"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "svc_target_name", "cdn.testhttps.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "svc_params", "alpn|h2,h3"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSZoneResource_forwarder(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "fwdzone-test.example"
+  type = "Forwarder"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "name", "fwdzone-test.example"),
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "type", "Forwarder"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSZoneResource_catalog(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "catalog-test.example"
+  type = "Catalog"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "name", "catalog-test.example"),
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "type", "Catalog"),
+				),
+			},
+		},
+	})
+}
