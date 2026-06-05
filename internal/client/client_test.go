@@ -376,6 +376,176 @@ func newTestServer() *httptest.Server {
 		})
 	})
 
+	// DNSSEC endpoints
+	mux.HandleFunc("/api/zones/dnssec/sign", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{},
+		})
+	})
+
+	mux.HandleFunc("/api/zones/dnssec/unsign", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{},
+		})
+	})
+
+	mux.HandleFunc("/api/zones/dnssec/properties/get", func(w http.ResponseWriter, r *http.Request) {
+		zone := r.URL.Query().Get("zone")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"zone":            zone,
+				"algorithm":       "ECDSA",
+				"curve":           "P256",
+				"dnsKeyTtl":       float64(86400),
+				"zskRolloverDays": float64(30),
+				"nxProof":         "NSEC",
+			},
+		})
+	})
+
+	// Admin users endpoints
+	mux.HandleFunc("/api/admin/users/list", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"users": []interface{}{
+					map[string]interface{}{
+						"username":    "admin",
+						"displayName": "Administrator",
+						"disabled":    false,
+					},
+				},
+			},
+		})
+	})
+
+	mux.HandleFunc("/api/admin/users/create", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"username":    r.URL.Query().Get("user"),
+				"displayName": r.URL.Query().Get("displayName"),
+			},
+		})
+	})
+
+	mux.HandleFunc("/api/admin/users/get", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"username":              r.URL.Query().Get("user"),
+				"displayName":           "Test User",
+				"disabled":              false,
+				"sessionTimeoutSeconds": float64(1800),
+				"memberOfGroups": []interface{}{
+					map[string]interface{}{"name": "Administrators"},
+				},
+			},
+		})
+	})
+
+	mux.HandleFunc("/api/admin/users/set", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{},
+		})
+	})
+
+	mux.HandleFunc("/api/admin/users/delete", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{},
+		})
+	})
+
+	// Admin groups endpoints
+	mux.HandleFunc("/api/admin/groups/list", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"groups": []interface{}{
+					map[string]interface{}{
+						"name":        "Administrators",
+						"description": "Built-in admin group",
+					},
+				},
+			},
+		})
+	})
+
+	mux.HandleFunc("/api/admin/groups/create", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"name":        r.URL.Query().Get("group"),
+				"description": r.URL.Query().Get("description"),
+			},
+		})
+	})
+
+	mux.HandleFunc("/api/admin/groups/get", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"name":        r.URL.Query().Get("group"),
+				"description": "Test group",
+				"members": []interface{}{
+					map[string]interface{}{"username": "admin"},
+				},
+			},
+		})
+	})
+
+	mux.HandleFunc("/api/admin/groups/set", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{},
+		})
+	})
+
+	mux.HandleFunc("/api/admin/groups/delete", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{},
+		})
+	})
+
+	// Admin permissions endpoints
+	mux.HandleFunc("/api/admin/permissions/get", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"section": r.URL.Query().Get("section"),
+				"userPermissions": []interface{}{
+					map[string]interface{}{
+						"username":  "admin",
+						"canView":   true,
+						"canModify": true,
+						"canDelete": true,
+					},
+				},
+				"groupPermissions": []interface{}{
+					map[string]interface{}{
+						"name":      "Administrators",
+						"canView":   true,
+						"canModify": true,
+						"canDelete": true,
+					},
+				},
+			},
+		})
+	})
+
+	mux.HandleFunc("/api/admin/permissions/set", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{},
+		})
+	})
+
 	return httptest.NewServer(mux)
 }
 
@@ -1591,5 +1761,371 @@ func TestCreateZone_WithExtra(t *testing.T) {
 	domain, _ := resp["domain"].(string)
 	if domain != "fwd.example.com" {
 		t.Errorf("expected domain 'fwd.example.com', got '%s'", domain)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// DNSSEC tests
+// ---------------------------------------------------------------------------
+
+func TestSignZone(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	params := url.Values{}
+	params.Set("algorithm", "ECDSA")
+	params.Set("curve", "P256")
+	_, err = c.SignZone("example.com", params)
+	if err != nil {
+		t.Fatalf("SignZone failed: %v", err)
+	}
+}
+
+func TestUnsignZone(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	_, err = c.UnsignZone("example.com")
+	if err != nil {
+		t.Fatalf("UnsignZone failed: %v", err)
+	}
+}
+
+func TestGetDNSSECProperties(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, err := c.GetDNSSECProperties("example.com")
+	if err != nil {
+		t.Fatalf("GetDNSSECProperties failed: %v", err)
+	}
+
+	algo, _ := resp["algorithm"].(string)
+	if algo != "ECDSA" {
+		t.Errorf("expected algorithm 'ECDSA', got '%s'", algo)
+	}
+
+	curve, _ := resp["curve"].(string)
+	if curve != "P256" {
+		t.Errorf("expected curve 'P256', got '%s'", curve)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Admin user tests
+// ---------------------------------------------------------------------------
+
+func TestListUsers(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, err := c.ListUsers()
+	if err != nil {
+		t.Fatalf("ListUsers failed: %v", err)
+	}
+
+	users, ok := resp["users"].([]interface{})
+	if !ok {
+		t.Fatal("response missing 'users' array")
+	}
+	if len(users) != 1 {
+		t.Errorf("expected 1 user, got %d", len(users))
+	}
+}
+
+func TestCreateUser(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, err := c.CreateUser("testuser", "testpass")
+	if err != nil {
+		t.Fatalf("CreateUser failed: %v", err)
+	}
+
+	username, _ := resp["username"].(string)
+	if username != "testuser" {
+		t.Errorf("expected username 'testuser', got '%s'", username)
+	}
+}
+
+func TestCreateUser_WithExtra(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	extra := url.Values{}
+	extra.Set("displayName", "Test User")
+
+	resp, err := c.CreateUser("testuser", "testpass", extra)
+	if err != nil {
+		t.Fatalf("CreateUser with extra failed: %v", err)
+	}
+
+	displayName, _ := resp["displayName"].(string)
+	if displayName != "Test User" {
+		t.Errorf("expected displayName 'Test User', got '%s'", displayName)
+	}
+}
+
+func TestGetUserDetails(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, err := c.GetUserDetails("admin")
+	if err != nil {
+		t.Fatalf("GetUserDetails failed: %v", err)
+	}
+
+	username, _ := resp["username"].(string)
+	if username != "admin" {
+		t.Errorf("expected username 'admin', got '%s'", username)
+	}
+
+	displayName, _ := resp["displayName"].(string)
+	if displayName != "Test User" {
+		t.Errorf("expected displayName 'Test User', got '%s'", displayName)
+	}
+}
+
+func TestSetUserDetails(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	params := url.Values{}
+	params.Set("disabled", "true")
+	_, err = c.SetUserDetails("admin", params)
+	if err != nil {
+		t.Fatalf("SetUserDetails failed: %v", err)
+	}
+}
+
+func TestDeleteUser(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	_, err = c.DeleteUser("testuser")
+	if err != nil {
+		t.Fatalf("DeleteUser failed: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Admin group tests
+// ---------------------------------------------------------------------------
+
+func TestListGroups(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, err := c.ListGroups()
+	if err != nil {
+		t.Fatalf("ListGroups failed: %v", err)
+	}
+
+	groups, ok := resp["groups"].([]interface{})
+	if !ok {
+		t.Fatal("response missing 'groups' array")
+	}
+	if len(groups) != 1 {
+		t.Errorf("expected 1 group, got %d", len(groups))
+	}
+}
+
+func TestCreateGroup(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, err := c.CreateGroup("Operators", "Operations team")
+	if err != nil {
+		t.Fatalf("CreateGroup failed: %v", err)
+	}
+
+	name, _ := resp["name"].(string)
+	if name != "Operators" {
+		t.Errorf("expected group name 'Operators', got '%s'", name)
+	}
+}
+
+func TestCreateGroup_NoDescription(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	_, err = c.CreateGroup("Operators", "")
+	if err != nil {
+		t.Fatalf("CreateGroup without description failed: %v", err)
+	}
+}
+
+func TestGetGroupDetails(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, err := c.GetGroupDetails("Administrators")
+	if err != nil {
+		t.Fatalf("GetGroupDetails failed: %v", err)
+	}
+
+	name, _ := resp["name"].(string)
+	if name != "Administrators" {
+		t.Errorf("expected group name 'Administrators', got '%s'", name)
+	}
+
+	description, _ := resp["description"].(string)
+	if description != "Test group" {
+		t.Errorf("expected description 'Test group', got '%s'", description)
+	}
+}
+
+func TestSetGroupDetails(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	params := url.Values{}
+	params.Set("members", "admin,testuser")
+	_, err = c.SetGroupDetails("Administrators", params)
+	if err != nil {
+		t.Fatalf("SetGroupDetails failed: %v", err)
+	}
+}
+
+func TestDeleteGroup(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	_, err = c.DeleteGroup("Operators")
+	if err != nil {
+		t.Fatalf("DeleteGroup failed: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Admin permission tests
+// ---------------------------------------------------------------------------
+
+func TestGetPermissions(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, err := c.GetPermissions("Zones")
+	if err != nil {
+		t.Fatalf("GetPermissions failed: %v", err)
+	}
+
+	section, _ := resp["section"].(string)
+	if section != "Zones" {
+		t.Errorf("expected section 'Zones', got '%s'", section)
+	}
+
+	userPerms, ok := resp["userPermissions"].([]interface{})
+	if !ok {
+		t.Fatal("response missing 'userPermissions' array")
+	}
+	if len(userPerms) != 1 {
+		t.Errorf("expected 1 user permission, got %d", len(userPerms))
+	}
+
+	groupPerms, ok := resp["groupPermissions"].([]interface{})
+	if !ok {
+		t.Fatal("response missing 'groupPermissions' array")
+	}
+	if len(groupPerms) != 1 {
+		t.Errorf("expected 1 group permission, got %d", len(groupPerms))
+	}
+}
+
+func TestSetPermissions(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	params := url.Values{}
+	params.Set("userPermissions", "admin|true|true|true")
+	params.Set("groupPermissions", "Administrators|true|true|true")
+	_, err = c.SetPermissions("Zones", params)
+	if err != nil {
+		t.Fatalf("SetPermissions failed: %v", err)
 	}
 }

@@ -465,3 +465,131 @@ func (c *Client) SetAppConfig(name string, config string) (map[string]interface{
 	params.Set("config", config)
 	return c.doRequest(http.MethodPost, "apps/setConfig", params)
 }
+
+// ---------------------------------------------------------------------------
+// DNSSEC
+// ---------------------------------------------------------------------------
+
+// SignZone signs an authoritative zone with DNSSEC. The params should include
+// algorithm-specific options (e.g. hashName, kskKeySize, curve).
+func (c *Client) SignZone(zone string, params url.Values) (map[string]interface{}, error) {
+	params.Set("zone", zone)
+	return c.doRequest(http.MethodGet, "zones/dnssec/sign", params)
+}
+
+// UnsignZone removes DNSSEC signing from an authoritative zone.
+func (c *Client) UnsignZone(zone string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("zone", zone)
+	return c.doRequest(http.MethodGet, "zones/dnssec/unsign", params)
+}
+
+// GetDNSSECProperties returns the DNSSEC properties for a signed zone.
+func (c *Client) GetDNSSECProperties(zone string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("zone", zone)
+	return c.doRequest(http.MethodGet, "zones/dnssec/properties/get", params)
+}
+
+// ---------------------------------------------------------------------------
+// Admin Users
+// ---------------------------------------------------------------------------
+
+// ListUsers returns all admin users on the server.
+func (c *Client) ListUsers() (map[string]interface{}, error) {
+	return c.doRequest(http.MethodGet, "admin/users/list", nil)
+}
+
+// CreateUser creates a new admin user. Extra params are passed through for
+// optional fields like displayName.
+func (c *Client) CreateUser(username, password string, extra ...url.Values) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("user", username)
+	params.Set("pass", password)
+	for _, e := range extra {
+		for k, vs := range e {
+			for _, v := range vs {
+				params.Set(k, v)
+			}
+		}
+	}
+	return c.doRequest(http.MethodGet, "admin/users/create", params)
+}
+
+// GetUserDetails returns details for an admin user including group memberships.
+func (c *Client) GetUserDetails(username string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("user", username)
+	params.Set("includeGroups", "true")
+	return c.doRequest(http.MethodGet, "admin/users/get", params)
+}
+
+// SetUserDetails updates properties of an admin user.
+func (c *Client) SetUserDetails(username string, params url.Values) (map[string]interface{}, error) {
+	params.Set("user", username)
+	return c.doRequest(http.MethodGet, "admin/users/set", params)
+}
+
+// DeleteUser deletes an admin user.
+func (c *Client) DeleteUser(username string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("user", username)
+	return c.doRequest(http.MethodGet, "admin/users/delete", params)
+}
+
+// ---------------------------------------------------------------------------
+// Admin Groups
+// ---------------------------------------------------------------------------
+
+// ListGroups returns all admin groups on the server.
+func (c *Client) ListGroups() (map[string]interface{}, error) {
+	return c.doRequest(http.MethodGet, "admin/groups/list", nil)
+}
+
+// CreateGroup creates a new admin group.
+func (c *Client) CreateGroup(name string, description string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("group", name)
+	if description != "" {
+		params.Set("description", description)
+	}
+	return c.doRequest(http.MethodGet, "admin/groups/create", params)
+}
+
+// GetGroupDetails returns details for an admin group including members.
+func (c *Client) GetGroupDetails(name string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("group", name)
+	params.Set("includeUsers", "true")
+	return c.doRequest(http.MethodGet, "admin/groups/get", params)
+}
+
+// SetGroupDetails updates properties of an admin group.
+func (c *Client) SetGroupDetails(name string, params url.Values) (map[string]interface{}, error) {
+	params.Set("group", name)
+	return c.doRequest(http.MethodGet, "admin/groups/set", params)
+}
+
+// DeleteGroup deletes an admin group.
+func (c *Client) DeleteGroup(name string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("group", name)
+	return c.doRequest(http.MethodGet, "admin/groups/delete", params)
+}
+
+// ---------------------------------------------------------------------------
+// Admin Permissions
+// ---------------------------------------------------------------------------
+
+// GetPermissions returns the permission configuration for a section.
+func (c *Client) GetPermissions(section string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("section", section)
+	return c.doRequest(http.MethodGet, "admin/permissions/get", params)
+}
+
+// SetPermissions updates the permission configuration for a section.
+func (c *Client) SetPermissions(section string, params url.Values) (map[string]interface{}, error) {
+	params.Set("section", section)
+	return c.doRequest(http.MethodGet, "admin/permissions/set", params)
+}

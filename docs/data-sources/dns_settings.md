@@ -41,22 +41,54 @@ output "blocking_enabled" {
 - `client_timeout` (Number) Timeout in milliseconds for client connections.
 - `concurrent_forwarding` (Boolean) Whether concurrent forwarding to all configured forwarders is enabled.
 - `default_ns_record_ttl` (Number) Default TTL in seconds for NS records.
+- `default_responsible_person` (String) Default responsible person email for SOA records.
 - `default_soa_record_ttl` (Number) Default TTL in seconds for SOA records.
+- `dns_apps_enable_automatic_update` (Boolean) Whether automatic updates for DNS apps are enabled.
+- `dns_over_http_port` (Number) Port for DNS-over-HTTP.
+- `dns_over_http_real_ip_header` (String) HTTP header name for real IP detection in DNS-over-HTTP.
+- `dns_over_https_port` (Number) Port for DNS-over-HTTPS.
+- `dns_over_quic_port` (Number) Port for DNS-over-QUIC.
+- `dns_over_tcp_proxy_port` (Number) Port for DNS-over-TCP proxy protocol.
+- `dns_over_tls_port` (Number) Port for DNS-over-TLS.
+- `dns_over_udp_proxy_port` (Number) Port for DNS-over-UDP proxy protocol.
 - `dns_server_domain` (String) The primary domain name used by the DNS server.
+- `dns_tls_certificate_password` (String, Sensitive) Password for the DNS TLS certificate.
+- `dns_tls_certificate_path` (String) File path to the TLS certificate for DNS-over-TLS and DNS-over-HTTPS.
 - `dnssec_validation` (Boolean) Whether DNSSEC validation is enabled.
+- `edns_client_subnet` (Boolean) Whether EDNS Client Subnet is enabled.
+- `edns_client_subnet_ipv4_override` (String) EDNS Client Subnet IPv4 override address.
+- `edns_client_subnet_ipv4_prefix_length` (Number) EDNS Client Subnet IPv4 prefix length.
+- `edns_client_subnet_ipv6_override` (String) EDNS Client Subnet IPv6 override address.
+- `edns_client_subnet_ipv6_prefix_length` (Number) EDNS Client Subnet IPv6 prefix length.
 - `enable_blocking` (Boolean) Whether DNS-level blocking is enabled.
+- `enable_dns_over_http` (Boolean) Whether DNS-over-HTTP is enabled.
+- `enable_dns_over_http3` (Boolean) Whether DNS-over-HTTP/3 is enabled.
+- `enable_dns_over_https` (Boolean) Whether DNS-over-HTTPS is enabled.
+- `enable_dns_over_quic` (Boolean) Whether DNS-over-QUIC is enabled.
+- `enable_dns_over_tcp_proxy` (Boolean) Whether DNS-over-TCP proxy protocol is enabled.
+- `enable_dns_over_tls` (Boolean) Whether DNS-over-TLS is enabled.
+- `enable_dns_over_udp_proxy` (Boolean) Whether DNS-over-UDP proxy protocol is enabled.
+- `enable_in_memory_stats` (Boolean) Whether in-memory statistics are enabled.
 - `enable_logging` (Boolean) Whether DNS query logging is enabled.
+- `enable_udp_socket_pool` (Boolean) Whether UDP socket pooling is enabled.
 - `forwarder_concurrency` (Number) Number of concurrent forwarder queries.
 - `forwarder_protocol` (String) Protocol used for DNS forwarding.
 - `forwarder_retries` (Number) Number of retries for forwarder queries.
 - `forwarder_timeout` (Number) Timeout in milliseconds for forwarder queries.
 - `forwarders` (List of String) List of forwarder DNS server addresses.
+- `ignore_resolver_logs` (Boolean) Whether resolver log entries are ignored.
 - `ipv6_mode` (String) IPv6 mode.
 - `listen_backlog` (Number) TCP listen backlog size.
+- `log_folder` (String) Path to the log folder.
 - `log_queries` (Boolean) Whether all DNS queries are logged.
+- `logging_type` (String) Logging type.
+- `max_concurrent_resolutions_per_core` (Number) Maximum concurrent DNS resolutions per CPU core.
+- `max_stat_file_days` (Number) Number of days to retain statistics files.
 - `min_soa_refresh` (Number) Minimum SOA refresh interval in seconds.
 - `min_soa_retry` (Number) Minimum SOA retry interval in seconds.
 - `prefer_ipv6` (Boolean) Whether IPv6 is preferred for DNS resolution.
+- `quic_idle_timeout` (Number) QUIC idle timeout in milliseconds.
+- `quic_max_inbound_streams` (Number) Maximum number of inbound QUIC streams.
 - `recursion` (String) The recursion policy.
 - `resolver_concurrency` (Number) Number of concurrent resolver queries.
 - `resolver_max_stack_count` (Number) Maximum number of resolver stack entries.
@@ -67,8 +99,25 @@ output "blocking_enabled" {
 - `serve_stale_max_wait_time` (Number) Maximum wait time in milliseconds before serving stale.
 - `serve_stale_reset_ttl` (Number) TTL in seconds to reset serve stale timer.
 - `serve_stale_ttl` (Number) TTL in seconds for serve stale records.
+- `server_proxy_address` (String) Proxy server address.
+- `server_proxy_bypass` (String) Proxy bypass list.
+- `server_proxy_password` (String, Sensitive) Proxy server password.
+- `server_proxy_port` (Number) Proxy server port.
+- `server_proxy_type` (String) Proxy type for the DNS server.
+- `server_proxy_username` (String, Sensitive) Proxy server username.
 - `tcp_receive_timeout` (Number) Timeout in milliseconds for TCP receive operations.
 - `tcp_send_timeout` (Number) Timeout in milliseconds for TCP send operations.
 - `udp_payload_size` (Number) Maximum UDP payload size in bytes.
 - `udp_receive_buffer_size_kb` (Number) UDP receive buffer size in kilobytes.
 - `udp_send_buffer_size_kb` (Number) UDP send buffer size in kilobytes.
+- `use_local_time` (Boolean) Whether local time is used in logs.
+- `use_soa_serial_date_scheme` (Boolean) Whether date-based SOA serial number scheme is used.
+- `web_service_enable_http3` (Boolean) Whether HTTP/3 is enabled for the web service.
+- `web_service_enable_tls` (Boolean) Whether TLS is enabled for the web service.
+- `web_service_http_port` (Number) HTTP port for the web service.
+- `web_service_http_to_tls_redirect` (Boolean) Whether HTTP to TLS redirect is enabled for the web service.
+- `web_service_real_ip_header` (String) HTTP header name for real IP detection in the web service.
+- `web_service_tls_certificate_password` (String, Sensitive) Password for the web service TLS certificate.
+- `web_service_tls_certificate_path` (String) File path to the TLS certificate for the web service.
+- `web_service_tls_port` (Number) TLS port for the web service.
+- `web_service_use_self_signed_tls_certificate` (Boolean) Whether a self-signed TLS certificate is used for the web service.

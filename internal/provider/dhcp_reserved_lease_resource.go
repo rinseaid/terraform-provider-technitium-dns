@@ -59,11 +59,9 @@ func (r *dhcpReservedLeaseResource) Schema(_ context.Context, _ resource.SchemaR
 				},
 			},
 			"hardware_address": schema.StringAttribute{
-				Description: "The MAC address of the client device. Stored in lowercase colon-separated format.",
+				Description: "The MAC address of the client device.",
 				Required:    true,
-				Computed:    true,
 				PlanModifiers: []planmodifier.String{
-					normalizeMACModifier{},
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
@@ -337,19 +335,3 @@ func normalizeMAC(mac string) string {
 	return mac
 }
 
-type normalizeMACModifier struct{}
-
-func (m normalizeMACModifier) Description(_ context.Context) string {
-	return "Normalizes MAC address to lowercase colon-separated format."
-}
-
-func (m normalizeMACModifier) MarkdownDescription(_ context.Context) string {
-	return "Normalizes MAC address to lowercase colon-separated format."
-}
-
-func (m normalizeMACModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	if req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
-		return
-	}
-	resp.PlanValue = types.StringValue(normalizeMAC(req.PlanValue.ValueString()))
-}

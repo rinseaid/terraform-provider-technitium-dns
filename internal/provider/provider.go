@@ -165,6 +165,11 @@ func (p *TechnitiumProvider) Resources(_ context.Context) []func() resource.Reso
 		NewDHCPReservedLeaseResource,
 		NewAllowedZoneResource,
 		NewBlockedZoneResource,
+		NewDNSAppConfigResource,
+		NewAdminUserResource,
+		NewAdminGroupResource,
+		NewAdminPermissionResource,
+		NewZoneDnssecResource,
 	}
 }
 

@@ -59,6 +59,41 @@ type dnsRecordResourceModel struct {
 	AppName           types.String `tfsdk:"app_name"`
 	ClassPath         types.String `tfsdk:"class_path"`
 	RecordData        types.String `tfsdk:"record_data"`
+	// ANAME
+	AName types.String `tfsdk:"aname"`
+	// DNAME
+	DName types.String `tfsdk:"dname"`
+	// NAPTR
+	NaptrOrder       types.Int64  `tfsdk:"naptr_order"`
+	NaptrPreference  types.Int64  `tfsdk:"naptr_preference"`
+	NaptrFlags       types.String `tfsdk:"naptr_flags"`
+	NaptrServices    types.String `tfsdk:"naptr_services"`
+	NaptrRegexp      types.String `tfsdk:"naptr_regexp"`
+	NaptrReplacement types.String `tfsdk:"naptr_replacement"`
+	// SSHFP
+	SshfpAlgorithm       types.Int64  `tfsdk:"sshfp_algorithm"`
+	SshfpFingerprintType types.Int64  `tfsdk:"sshfp_fingerprint_type"`
+	SshfpFingerprint     types.String `tfsdk:"sshfp_fingerprint"`
+	// TLSA
+	TlsaCertificateUsage           types.String `tfsdk:"tlsa_certificate_usage"`
+	TlsaSelector                   types.String `tfsdk:"tlsa_selector"`
+	TlsaMatchingType               types.String `tfsdk:"tlsa_matching_type"`
+	TlsaCertificateAssociationData types.String `tfsdk:"tlsa_certificate_association_data"`
+	// URI
+	UriPriority types.Int64  `tfsdk:"uri_priority"`
+	UriWeight   types.Int64  `tfsdk:"uri_weight"`
+	Uri         types.String `tfsdk:"uri"`
+	// DS
+	DsKeyTag     types.Int64  `tfsdk:"ds_key_tag"`
+	DsAlgorithm  types.Int64  `tfsdk:"ds_algorithm"`
+	DsDigestType types.Int64  `tfsdk:"ds_digest_type"`
+	DsDigest     types.String `tfsdk:"ds_digest"`
+	// SVCB/HTTPS
+	SvcPriority   types.Int64  `tfsdk:"svc_priority"`
+	SvcTargetName types.String `tfsdk:"svc_target_name"`
+	SvcParams     types.String `tfsdk:"svc_params"`
+	AutoIpv4Hint  types.Bool   `tfsdk:"auto_ipv4_hint"`
+	AutoIpv6Hint  types.Bool   `tfsdk:"auto_ipv6_hint"`
 }
 
 func (r *dnsRecordResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -96,6 +131,7 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Validators: []validator.String{
 					stringvalidator.OneOf(
 						"A", "AAAA", "CNAME", "MX", "TXT", "SRV", "NS", "PTR", "CAA", "SOA", "FWD", "APP",
+						"ANAME", "DNAME", "NAPTR", "SSHFP", "TLSA", "URI", "DS", "SVCB", "HTTPS",
 					),
 				},
 			},
@@ -195,6 +231,131 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			"record_data": schema.StringAttribute{
 				Description: "App-specific record data for APP records.",
+				Optional:    true,
+			},
+			// ANAME
+			"aname": schema.StringAttribute{
+				Description: "Target domain for ANAME records.",
+				Optional:    true,
+			},
+			// DNAME
+			"dname": schema.StringAttribute{
+				Description: "Target domain for DNAME records.",
+				Optional:    true,
+			},
+			// NAPTR
+			"naptr_order": schema.Int64Attribute{
+				Description: "Order value for NAPTR records.",
+				Optional:    true,
+			},
+			"naptr_preference": schema.Int64Attribute{
+				Description: "Preference value for NAPTR records.",
+				Optional:    true,
+			},
+			"naptr_flags": schema.StringAttribute{
+				Description: "Flags for NAPTR records.",
+				Optional:    true,
+			},
+			"naptr_services": schema.StringAttribute{
+				Description: "Services field for NAPTR records.",
+				Optional:    true,
+			},
+			"naptr_regexp": schema.StringAttribute{
+				Description: "Regular expression for NAPTR records.",
+				Optional:    true,
+			},
+			"naptr_replacement": schema.StringAttribute{
+				Description: "Replacement domain for NAPTR records.",
+				Optional:    true,
+			},
+			// SSHFP
+			"sshfp_algorithm": schema.Int64Attribute{
+				Description: "Algorithm number for SSHFP records (1=RSA, 2=DSA, 3=ECDSA, 4=Ed25519).",
+				Optional:    true,
+			},
+			"sshfp_fingerprint_type": schema.Int64Attribute{
+				Description: "Fingerprint type for SSHFP records (1=SHA-1, 2=SHA-256).",
+				Optional:    true,
+			},
+			"sshfp_fingerprint": schema.StringAttribute{
+				Description: "Fingerprint hex string for SSHFP records.",
+				Optional:    true,
+			},
+			// TLSA
+			"tlsa_certificate_usage": schema.StringAttribute{
+				Description: "Certificate usage for TLSA records.",
+				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("PKIX-TA", "PKIX-EE", "DANE-TA", "DANE-EE"),
+				},
+			},
+			"tlsa_selector": schema.StringAttribute{
+				Description: "Selector for TLSA records.",
+				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("Cert", "SPKI"),
+				},
+			},
+			"tlsa_matching_type": schema.StringAttribute{
+				Description: "Matching type for TLSA records.",
+				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("Full", "SHA2-256", "SHA2-512"),
+				},
+			},
+			"tlsa_certificate_association_data": schema.StringAttribute{
+				Description: "Certificate association data for TLSA records.",
+				Optional:    true,
+			},
+			// URI
+			"uri_priority": schema.Int64Attribute{
+				Description: "Priority for URI records.",
+				Optional:    true,
+			},
+			"uri_weight": schema.Int64Attribute{
+				Description: "Weight for URI records.",
+				Optional:    true,
+			},
+			"uri": schema.StringAttribute{
+				Description: "URI value for URI records.",
+				Optional:    true,
+			},
+			// DS
+			"ds_key_tag": schema.Int64Attribute{
+				Description: "Key tag for DS records.",
+				Optional:    true,
+			},
+			"ds_algorithm": schema.Int64Attribute{
+				Description: "Algorithm number for DS records.",
+				Optional:    true,
+			},
+			"ds_digest_type": schema.Int64Attribute{
+				Description: "Digest type for DS records.",
+				Optional:    true,
+			},
+			"ds_digest": schema.StringAttribute{
+				Description: "Digest hex string for DS records.",
+				Optional:    true,
+			},
+			// SVCB/HTTPS
+			"svc_priority": schema.Int64Attribute{
+				Description: "Priority for SVCB/HTTPS records.",
+				Optional:    true,
+			},
+			"svc_target_name": schema.StringAttribute{
+				Description: "Target name for SVCB/HTTPS records.",
+				Optional:    true,
+			},
+			"svc_params": schema.StringAttribute{
+				Description: "Service parameters for SVCB/HTTPS records.",
+				Optional:    true,
+			},
+			"auto_ipv4_hint": schema.BoolAttribute{
+				Description: "Automatically generate IPv4 address hints for SVCB/HTTPS records.",
+				Optional:    true,
+			},
+			"auto_ipv6_hint": schema.BoolAttribute{
+				Description: "Automatically generate IPv6 address hints for SVCB/HTTPS records.",
 				Optional:    true,
 			},
 		},
@@ -497,6 +658,125 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 			} else if !model.RecordData.IsNull() {
 				model.RecordData = types.StringNull()
 			}
+		case "ANAME":
+			if v, ok := rData["aname"].(string); ok && v != "" {
+				model.AName = types.StringValue(v)
+			} else if !model.AName.IsNull() {
+				model.AName = types.StringNull()
+			}
+		case "DNAME":
+			if v, ok := rData["dname"].(string); ok && v != "" {
+				model.DName = types.StringValue(v)
+			} else if !model.DName.IsNull() {
+				model.DName = types.StringNull()
+			}
+		case "NAPTR":
+			if v, ok := rData["naptrOrder"].(float64); ok {
+				model.NaptrOrder = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["naptrPreference"].(float64); ok {
+				model.NaptrPreference = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["naptrFlags"].(string); ok && v != "" {
+				model.NaptrFlags = types.StringValue(v)
+			} else if !model.NaptrFlags.IsNull() {
+				model.NaptrFlags = types.StringNull()
+			}
+			if v, ok := rData["naptrServices"].(string); ok && v != "" {
+				model.NaptrServices = types.StringValue(v)
+			} else if !model.NaptrServices.IsNull() {
+				model.NaptrServices = types.StringNull()
+			}
+			if v, ok := rData["naptrRegexp"].(string); ok && v != "" {
+				model.NaptrRegexp = types.StringValue(v)
+			} else if !model.NaptrRegexp.IsNull() {
+				model.NaptrRegexp = types.StringNull()
+			}
+			if v, ok := rData["naptrReplacement"].(string); ok && v != "" {
+				model.NaptrReplacement = types.StringValue(v)
+			} else if !model.NaptrReplacement.IsNull() {
+				model.NaptrReplacement = types.StringNull()
+			}
+		case "SSHFP":
+			if v, ok := rData["sshfpAlgorithm"].(float64); ok {
+				model.SshfpAlgorithm = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["sshfpFingerprintType"].(float64); ok {
+				model.SshfpFingerprintType = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["sshfpFingerprint"].(string); ok && v != "" {
+				model.SshfpFingerprint = types.StringValue(v)
+			} else if !model.SshfpFingerprint.IsNull() {
+				model.SshfpFingerprint = types.StringNull()
+			}
+		case "TLSA":
+			if v, ok := rData["tlsaCertificateUsage"].(string); ok && v != "" {
+				model.TlsaCertificateUsage = types.StringValue(v)
+			} else if !model.TlsaCertificateUsage.IsNull() {
+				model.TlsaCertificateUsage = types.StringNull()
+			}
+			if v, ok := rData["tlsaSelector"].(string); ok && v != "" {
+				model.TlsaSelector = types.StringValue(v)
+			} else if !model.TlsaSelector.IsNull() {
+				model.TlsaSelector = types.StringNull()
+			}
+			if v, ok := rData["tlsaMatchingType"].(string); ok && v != "" {
+				model.TlsaMatchingType = types.StringValue(v)
+			} else if !model.TlsaMatchingType.IsNull() {
+				model.TlsaMatchingType = types.StringNull()
+			}
+			if v, ok := rData["tlsaCertificateAssociationData"].(string); ok && v != "" {
+				model.TlsaCertificateAssociationData = types.StringValue(v)
+			} else if !model.TlsaCertificateAssociationData.IsNull() {
+				model.TlsaCertificateAssociationData = types.StringNull()
+			}
+		case "URI":
+			if v, ok := rData["uriPriority"].(float64); ok {
+				model.UriPriority = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["uriWeight"].(float64); ok {
+				model.UriWeight = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["uri"].(string); ok && v != "" {
+				model.Uri = types.StringValue(v)
+			} else if !model.Uri.IsNull() {
+				model.Uri = types.StringNull()
+			}
+		case "DS":
+			if v, ok := rData["keyTag"].(float64); ok {
+				model.DsKeyTag = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["algorithm"].(float64); ok {
+				model.DsAlgorithm = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["digestType"].(float64); ok {
+				model.DsDigestType = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["digest"].(string); ok && v != "" {
+				model.DsDigest = types.StringValue(v)
+			} else if !model.DsDigest.IsNull() {
+				model.DsDigest = types.StringNull()
+			}
+		case "SVCB", "HTTPS":
+			if v, ok := rData["svcPriority"].(float64); ok {
+				model.SvcPriority = types.Int64Value(int64(v))
+			}
+			if v, ok := rData["svcTargetName"].(string); ok && v != "" {
+				model.SvcTargetName = types.StringValue(v)
+			} else if !model.SvcTargetName.IsNull() {
+				model.SvcTargetName = types.StringNull()
+			}
+			if v, ok := rData["svcParams"].(string); ok && v != "" {
+				model.SvcParams = types.StringValue(v)
+			} else if !model.SvcParams.IsNull() {
+				model.SvcParams = types.StringNull()
+			}
+			if v, ok := rData["autoIpv4Hint"].(bool); ok && (v || !model.AutoIpv4Hint.IsNull()) {
+				model.AutoIpv4Hint = types.BoolValue(v)
+			}
+			if v, ok := rData["autoIpv6Hint"].(bool); ok && (v || !model.AutoIpv6Hint.IsNull()) {
+				model.AutoIpv6Hint = types.BoolValue(v)
+			}
 		}
 	}
 }
@@ -541,6 +821,30 @@ func recordValueFromRData(rec map[string]interface{}, recordType string) string 
 		return v
 	case "APP":
 		v, _ := rData["appName"].(string)
+		return v
+	case "ANAME":
+		v, _ := rData["aname"].(string)
+		return v
+	case "DNAME":
+		v, _ := rData["dname"].(string)
+		return v
+	case "NAPTR":
+		v, _ := rData["naptrReplacement"].(string)
+		return v
+	case "SSHFP":
+		v, _ := rData["sshfpFingerprint"].(string)
+		return v
+	case "TLSA":
+		v, _ := rData["tlsaCertificateAssociationData"].(string)
+		return v
+	case "URI":
+		v, _ := rData["uri"].(string)
+		return v
+	case "DS":
+		v, _ := rData["digest"].(string)
+		return v
+	case "SVCB", "HTTPS":
+		v, _ := rData["svcTargetName"].(string)
 		return v
 	default:
 		return ""
@@ -705,6 +1009,161 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		if !plan.RecordData.IsNull() && !plan.RecordData.IsUnknown() {
 			params.Set("recordData", plan.RecordData.ValueString())
 		}
+	case "ANAME":
+		params.Set("aname", oldValue)
+		params.Set("newAName", newValue)
+	case "DNAME":
+		params.Set("dname", newValue)
+	case "NAPTR":
+		if !state.NaptrOrder.IsNull() && !state.NaptrOrder.IsUnknown() {
+			params.Set("naptrOrder", fmt.Sprintf("%d", state.NaptrOrder.ValueInt64()))
+		}
+		if !plan.NaptrOrder.IsNull() && !plan.NaptrOrder.IsUnknown() {
+			params.Set("naptrNewOrder", fmt.Sprintf("%d", plan.NaptrOrder.ValueInt64()))
+		}
+		if !state.NaptrPreference.IsNull() && !state.NaptrPreference.IsUnknown() {
+			params.Set("naptrPreference", fmt.Sprintf("%d", state.NaptrPreference.ValueInt64()))
+		}
+		if !plan.NaptrPreference.IsNull() && !plan.NaptrPreference.IsUnknown() {
+			params.Set("naptrNewPreference", fmt.Sprintf("%d", plan.NaptrPreference.ValueInt64()))
+		}
+		if !state.NaptrFlags.IsNull() && !state.NaptrFlags.IsUnknown() {
+			params.Set("naptrFlags", state.NaptrFlags.ValueString())
+		}
+		if !plan.NaptrFlags.IsNull() && !plan.NaptrFlags.IsUnknown() {
+			params.Set("naptrNewFlags", plan.NaptrFlags.ValueString())
+		}
+		if !state.NaptrServices.IsNull() && !state.NaptrServices.IsUnknown() {
+			params.Set("naptrServices", state.NaptrServices.ValueString())
+		}
+		if !plan.NaptrServices.IsNull() && !plan.NaptrServices.IsUnknown() {
+			params.Set("naptrNewServices", plan.NaptrServices.ValueString())
+		}
+		if !state.NaptrRegexp.IsNull() && !state.NaptrRegexp.IsUnknown() {
+			params.Set("naptrRegexp", state.NaptrRegexp.ValueString())
+		}
+		if !plan.NaptrRegexp.IsNull() && !plan.NaptrRegexp.IsUnknown() {
+			params.Set("naptrNewRegexp", plan.NaptrRegexp.ValueString())
+		}
+		if !state.NaptrReplacement.IsNull() && !state.NaptrReplacement.IsUnknown() {
+			params.Set("naptrReplacement", state.NaptrReplacement.ValueString())
+		}
+		if !plan.NaptrReplacement.IsNull() && !plan.NaptrReplacement.IsUnknown() {
+			params.Set("naptrNewReplacement", plan.NaptrReplacement.ValueString())
+		}
+	case "SSHFP":
+		if !state.SshfpAlgorithm.IsNull() && !state.SshfpAlgorithm.IsUnknown() {
+			params.Set("sshfpAlgorithm", fmt.Sprintf("%d", state.SshfpAlgorithm.ValueInt64()))
+		}
+		if !plan.SshfpAlgorithm.IsNull() && !plan.SshfpAlgorithm.IsUnknown() {
+			params.Set("newSshfpAlgorithm", fmt.Sprintf("%d", plan.SshfpAlgorithm.ValueInt64()))
+		}
+		if !state.SshfpFingerprintType.IsNull() && !state.SshfpFingerprintType.IsUnknown() {
+			params.Set("sshfpFingerprintType", fmt.Sprintf("%d", state.SshfpFingerprintType.ValueInt64()))
+		}
+		if !plan.SshfpFingerprintType.IsNull() && !plan.SshfpFingerprintType.IsUnknown() {
+			params.Set("newSshfpFingerprintType", fmt.Sprintf("%d", plan.SshfpFingerprintType.ValueInt64()))
+		}
+		if !state.SshfpFingerprint.IsNull() && !state.SshfpFingerprint.IsUnknown() {
+			params.Set("sshfpFingerprint", state.SshfpFingerprint.ValueString())
+		}
+		if !plan.SshfpFingerprint.IsNull() && !plan.SshfpFingerprint.IsUnknown() {
+			params.Set("newSshfpFingerprint", plan.SshfpFingerprint.ValueString())
+		}
+	case "TLSA":
+		if !state.TlsaCertificateUsage.IsNull() && !state.TlsaCertificateUsage.IsUnknown() {
+			params.Set("tlsaCertificateUsage", state.TlsaCertificateUsage.ValueString())
+		}
+		if !plan.TlsaCertificateUsage.IsNull() && !plan.TlsaCertificateUsage.IsUnknown() {
+			params.Set("newTlsaCertificateUsage", plan.TlsaCertificateUsage.ValueString())
+		}
+		if !state.TlsaSelector.IsNull() && !state.TlsaSelector.IsUnknown() {
+			params.Set("tlsaSelector", state.TlsaSelector.ValueString())
+		}
+		if !plan.TlsaSelector.IsNull() && !plan.TlsaSelector.IsUnknown() {
+			params.Set("newTlsaSelector", plan.TlsaSelector.ValueString())
+		}
+		if !state.TlsaMatchingType.IsNull() && !state.TlsaMatchingType.IsUnknown() {
+			params.Set("tlsaMatchingType", state.TlsaMatchingType.ValueString())
+		}
+		if !plan.TlsaMatchingType.IsNull() && !plan.TlsaMatchingType.IsUnknown() {
+			params.Set("newTlsaMatchingType", plan.TlsaMatchingType.ValueString())
+		}
+		if !state.TlsaCertificateAssociationData.IsNull() && !state.TlsaCertificateAssociationData.IsUnknown() {
+			params.Set("tlsaCertificateAssociationData", state.TlsaCertificateAssociationData.ValueString())
+		}
+		if !plan.TlsaCertificateAssociationData.IsNull() && !plan.TlsaCertificateAssociationData.IsUnknown() {
+			params.Set("newTlsaCertificateAssociationData", plan.TlsaCertificateAssociationData.ValueString())
+		}
+	case "URI":
+		if !state.UriPriority.IsNull() && !state.UriPriority.IsUnknown() {
+			params.Set("uriPriority", fmt.Sprintf("%d", state.UriPriority.ValueInt64()))
+		}
+		if !plan.UriPriority.IsNull() && !plan.UriPriority.IsUnknown() {
+			params.Set("newUriPriority", fmt.Sprintf("%d", plan.UriPriority.ValueInt64()))
+		}
+		if !state.UriWeight.IsNull() && !state.UriWeight.IsUnknown() {
+			params.Set("uriWeight", fmt.Sprintf("%d", state.UriWeight.ValueInt64()))
+		}
+		if !plan.UriWeight.IsNull() && !plan.UriWeight.IsUnknown() {
+			params.Set("newUriWeight", fmt.Sprintf("%d", plan.UriWeight.ValueInt64()))
+		}
+		if !state.Uri.IsNull() && !state.Uri.IsUnknown() {
+			params.Set("uri", state.Uri.ValueString())
+		}
+		if !plan.Uri.IsNull() && !plan.Uri.IsUnknown() {
+			params.Set("newUri", plan.Uri.ValueString())
+		}
+	case "DS":
+		if !state.DsKeyTag.IsNull() && !state.DsKeyTag.IsUnknown() {
+			params.Set("keyTag", fmt.Sprintf("%d", state.DsKeyTag.ValueInt64()))
+		}
+		if !plan.DsKeyTag.IsNull() && !plan.DsKeyTag.IsUnknown() {
+			params.Set("newKeyTag", fmt.Sprintf("%d", plan.DsKeyTag.ValueInt64()))
+		}
+		if !state.DsAlgorithm.IsNull() && !state.DsAlgorithm.IsUnknown() {
+			params.Set("algorithm", fmt.Sprintf("%d", state.DsAlgorithm.ValueInt64()))
+		}
+		if !plan.DsAlgorithm.IsNull() && !plan.DsAlgorithm.IsUnknown() {
+			params.Set("newAlgorithm", fmt.Sprintf("%d", plan.DsAlgorithm.ValueInt64()))
+		}
+		if !state.DsDigestType.IsNull() && !state.DsDigestType.IsUnknown() {
+			params.Set("digestType", fmt.Sprintf("%d", state.DsDigestType.ValueInt64()))
+		}
+		if !plan.DsDigestType.IsNull() && !plan.DsDigestType.IsUnknown() {
+			params.Set("newDigestType", fmt.Sprintf("%d", plan.DsDigestType.ValueInt64()))
+		}
+		if !state.DsDigest.IsNull() && !state.DsDigest.IsUnknown() {
+			params.Set("digest", state.DsDigest.ValueString())
+		}
+		if !plan.DsDigest.IsNull() && !plan.DsDigest.IsUnknown() {
+			params.Set("newDigest", plan.DsDigest.ValueString())
+		}
+	case "SVCB", "HTTPS":
+		if !state.SvcPriority.IsNull() && !state.SvcPriority.IsUnknown() {
+			params.Set("svcPriority", fmt.Sprintf("%d", state.SvcPriority.ValueInt64()))
+		}
+		if !plan.SvcPriority.IsNull() && !plan.SvcPriority.IsUnknown() {
+			params.Set("newSvcPriority", fmt.Sprintf("%d", plan.SvcPriority.ValueInt64()))
+		}
+		if !state.SvcTargetName.IsNull() && !state.SvcTargetName.IsUnknown() {
+			params.Set("svcTargetName", state.SvcTargetName.ValueString())
+		}
+		if !plan.SvcTargetName.IsNull() && !plan.SvcTargetName.IsUnknown() {
+			params.Set("newSvcTargetName", plan.SvcTargetName.ValueString())
+		}
+		if !state.SvcParams.IsNull() && !state.SvcParams.IsUnknown() {
+			params.Set("svcParams", state.SvcParams.ValueString())
+		}
+		if !plan.SvcParams.IsNull() && !plan.SvcParams.IsUnknown() {
+			params.Set("newSvcParams", plan.SvcParams.ValueString())
+		}
+		if !plan.AutoIpv4Hint.IsNull() && !plan.AutoIpv4Hint.IsUnknown() {
+			params.Set("autoIpv4Hint", fmt.Sprintf("%t", plan.AutoIpv4Hint.ValueBool()))
+		}
+		if !plan.AutoIpv6Hint.IsNull() && !plan.AutoIpv6Hint.IsUnknown() {
+			params.Set("autoIpv6Hint", fmt.Sprintf("%t", plan.AutoIpv6Hint.ValueBool()))
+		}
 	}
 
 	return params
@@ -767,6 +1226,85 @@ func buildDeleteParams(state *dnsRecordResourceModel) url.Values {
 		}
 		if !state.RecordData.IsNull() && !state.RecordData.IsUnknown() {
 			params.Set("recordData", state.RecordData.ValueString())
+		}
+	case "ANAME":
+		if !state.AName.IsNull() && !state.AName.IsUnknown() {
+			params.Set("aname", state.AName.ValueString())
+		}
+	case "NAPTR":
+		if !state.NaptrOrder.IsNull() && !state.NaptrOrder.IsUnknown() {
+			params.Set("naptrOrder", fmt.Sprintf("%d", state.NaptrOrder.ValueInt64()))
+		}
+		if !state.NaptrPreference.IsNull() && !state.NaptrPreference.IsUnknown() {
+			params.Set("naptrPreference", fmt.Sprintf("%d", state.NaptrPreference.ValueInt64()))
+		}
+		if !state.NaptrFlags.IsNull() && !state.NaptrFlags.IsUnknown() {
+			params.Set("naptrFlags", state.NaptrFlags.ValueString())
+		}
+		if !state.NaptrServices.IsNull() && !state.NaptrServices.IsUnknown() {
+			params.Set("naptrServices", state.NaptrServices.ValueString())
+		}
+		if !state.NaptrRegexp.IsNull() && !state.NaptrRegexp.IsUnknown() {
+			params.Set("naptrRegexp", state.NaptrRegexp.ValueString())
+		}
+		if !state.NaptrReplacement.IsNull() && !state.NaptrReplacement.IsUnknown() {
+			params.Set("naptrReplacement", state.NaptrReplacement.ValueString())
+		}
+	case "SSHFP":
+		if !state.SshfpAlgorithm.IsNull() && !state.SshfpAlgorithm.IsUnknown() {
+			params.Set("sshfpAlgorithm", fmt.Sprintf("%d", state.SshfpAlgorithm.ValueInt64()))
+		}
+		if !state.SshfpFingerprintType.IsNull() && !state.SshfpFingerprintType.IsUnknown() {
+			params.Set("sshfpFingerprintType", fmt.Sprintf("%d", state.SshfpFingerprintType.ValueInt64()))
+		}
+		if !state.SshfpFingerprint.IsNull() && !state.SshfpFingerprint.IsUnknown() {
+			params.Set("sshfpFingerprint", state.SshfpFingerprint.ValueString())
+		}
+	case "TLSA":
+		if !state.TlsaCertificateUsage.IsNull() && !state.TlsaCertificateUsage.IsUnknown() {
+			params.Set("tlsaCertificateUsage", state.TlsaCertificateUsage.ValueString())
+		}
+		if !state.TlsaSelector.IsNull() && !state.TlsaSelector.IsUnknown() {
+			params.Set("tlsaSelector", state.TlsaSelector.ValueString())
+		}
+		if !state.TlsaMatchingType.IsNull() && !state.TlsaMatchingType.IsUnknown() {
+			params.Set("tlsaMatchingType", state.TlsaMatchingType.ValueString())
+		}
+		if !state.TlsaCertificateAssociationData.IsNull() && !state.TlsaCertificateAssociationData.IsUnknown() {
+			params.Set("tlsaCertificateAssociationData", state.TlsaCertificateAssociationData.ValueString())
+		}
+	case "URI":
+		if !state.UriPriority.IsNull() && !state.UriPriority.IsUnknown() {
+			params.Set("uriPriority", fmt.Sprintf("%d", state.UriPriority.ValueInt64()))
+		}
+		if !state.UriWeight.IsNull() && !state.UriWeight.IsUnknown() {
+			params.Set("uriWeight", fmt.Sprintf("%d", state.UriWeight.ValueInt64()))
+		}
+		if !state.Uri.IsNull() && !state.Uri.IsUnknown() {
+			params.Set("uri", state.Uri.ValueString())
+		}
+	case "DS":
+		if !state.DsKeyTag.IsNull() && !state.DsKeyTag.IsUnknown() {
+			params.Set("keyTag", fmt.Sprintf("%d", state.DsKeyTag.ValueInt64()))
+		}
+		if !state.DsAlgorithm.IsNull() && !state.DsAlgorithm.IsUnknown() {
+			params.Set("algorithm", fmt.Sprintf("%d", state.DsAlgorithm.ValueInt64()))
+		}
+		if !state.DsDigestType.IsNull() && !state.DsDigestType.IsUnknown() {
+			params.Set("digestType", fmt.Sprintf("%d", state.DsDigestType.ValueInt64()))
+		}
+		if !state.DsDigest.IsNull() && !state.DsDigest.IsUnknown() {
+			params.Set("digest", state.DsDigest.ValueString())
+		}
+	case "SVCB", "HTTPS":
+		if !state.SvcPriority.IsNull() && !state.SvcPriority.IsUnknown() {
+			params.Set("svcPriority", fmt.Sprintf("%d", state.SvcPriority.ValueInt64()))
+		}
+		if !state.SvcTargetName.IsNull() && !state.SvcTargetName.IsUnknown() {
+			params.Set("svcTargetName", state.SvcTargetName.ValueString())
+		}
+		if !state.SvcParams.IsNull() && !state.SvcParams.IsUnknown() {
+			params.Set("svcParams", state.SvcParams.ValueString())
 		}
 	}
 
@@ -850,6 +1388,91 @@ func setValueParams(params url.Values, plan *dnsRecordResourceModel) {
 		}
 		if !plan.RecordData.IsNull() && !plan.RecordData.IsUnknown() {
 			params.Set("recordData", plan.RecordData.ValueString())
+		}
+	case "ANAME":
+		params.Set("aname", value)
+	case "DNAME":
+		params.Set("dname", value)
+	case "NAPTR":
+		if !plan.NaptrReplacement.IsNull() && !plan.NaptrReplacement.IsUnknown() {
+			params.Set("naptrReplacement", plan.NaptrReplacement.ValueString())
+		}
+		if !plan.NaptrOrder.IsNull() && !plan.NaptrOrder.IsUnknown() {
+			params.Set("naptrOrder", fmt.Sprintf("%d", plan.NaptrOrder.ValueInt64()))
+		}
+		if !plan.NaptrPreference.IsNull() && !plan.NaptrPreference.IsUnknown() {
+			params.Set("naptrPreference", fmt.Sprintf("%d", plan.NaptrPreference.ValueInt64()))
+		}
+		if !plan.NaptrFlags.IsNull() && !plan.NaptrFlags.IsUnknown() {
+			params.Set("naptrFlags", plan.NaptrFlags.ValueString())
+		}
+		if !plan.NaptrServices.IsNull() && !plan.NaptrServices.IsUnknown() {
+			params.Set("naptrServices", plan.NaptrServices.ValueString())
+		}
+		if !plan.NaptrRegexp.IsNull() && !plan.NaptrRegexp.IsUnknown() {
+			params.Set("naptrRegexp", plan.NaptrRegexp.ValueString())
+		}
+	case "SSHFP":
+		if !plan.SshfpFingerprint.IsNull() && !plan.SshfpFingerprint.IsUnknown() {
+			params.Set("sshfpFingerprint", plan.SshfpFingerprint.ValueString())
+		}
+		if !plan.SshfpAlgorithm.IsNull() && !plan.SshfpAlgorithm.IsUnknown() {
+			params.Set("sshfpAlgorithm", fmt.Sprintf("%d", plan.SshfpAlgorithm.ValueInt64()))
+		}
+		if !plan.SshfpFingerprintType.IsNull() && !plan.SshfpFingerprintType.IsUnknown() {
+			params.Set("sshfpFingerprintType", fmt.Sprintf("%d", plan.SshfpFingerprintType.ValueInt64()))
+		}
+	case "TLSA":
+		if !plan.TlsaCertificateAssociationData.IsNull() && !plan.TlsaCertificateAssociationData.IsUnknown() {
+			params.Set("tlsaCertificateAssociationData", plan.TlsaCertificateAssociationData.ValueString())
+		}
+		if !plan.TlsaCertificateUsage.IsNull() && !plan.TlsaCertificateUsage.IsUnknown() {
+			params.Set("tlsaCertificateUsage", plan.TlsaCertificateUsage.ValueString())
+		}
+		if !plan.TlsaSelector.IsNull() && !plan.TlsaSelector.IsUnknown() {
+			params.Set("tlsaSelector", plan.TlsaSelector.ValueString())
+		}
+		if !plan.TlsaMatchingType.IsNull() && !plan.TlsaMatchingType.IsUnknown() {
+			params.Set("tlsaMatchingType", plan.TlsaMatchingType.ValueString())
+		}
+	case "URI":
+		if !plan.Uri.IsNull() && !plan.Uri.IsUnknown() {
+			params.Set("uri", plan.Uri.ValueString())
+		}
+		if !plan.UriPriority.IsNull() && !plan.UriPriority.IsUnknown() {
+			params.Set("uriPriority", fmt.Sprintf("%d", plan.UriPriority.ValueInt64()))
+		}
+		if !plan.UriWeight.IsNull() && !plan.UriWeight.IsUnknown() {
+			params.Set("uriWeight", fmt.Sprintf("%d", plan.UriWeight.ValueInt64()))
+		}
+	case "DS":
+		if !plan.DsDigest.IsNull() && !plan.DsDigest.IsUnknown() {
+			params.Set("digest", plan.DsDigest.ValueString())
+		}
+		if !plan.DsKeyTag.IsNull() && !plan.DsKeyTag.IsUnknown() {
+			params.Set("keyTag", fmt.Sprintf("%d", plan.DsKeyTag.ValueInt64()))
+		}
+		if !plan.DsAlgorithm.IsNull() && !plan.DsAlgorithm.IsUnknown() {
+			params.Set("algorithm", fmt.Sprintf("%d", plan.DsAlgorithm.ValueInt64()))
+		}
+		if !plan.DsDigestType.IsNull() && !plan.DsDigestType.IsUnknown() {
+			params.Set("digestType", fmt.Sprintf("%d", plan.DsDigestType.ValueInt64()))
+		}
+	case "SVCB", "HTTPS":
+		if !plan.SvcTargetName.IsNull() && !plan.SvcTargetName.IsUnknown() {
+			params.Set("svcTargetName", plan.SvcTargetName.ValueString())
+		}
+		if !plan.SvcPriority.IsNull() && !plan.SvcPriority.IsUnknown() {
+			params.Set("svcPriority", fmt.Sprintf("%d", plan.SvcPriority.ValueInt64()))
+		}
+		if !plan.SvcParams.IsNull() && !plan.SvcParams.IsUnknown() {
+			params.Set("svcParams", plan.SvcParams.ValueString())
+		}
+		if !plan.AutoIpv4Hint.IsNull() && !plan.AutoIpv4Hint.IsUnknown() {
+			params.Set("autoIpv4Hint", fmt.Sprintf("%t", plan.AutoIpv4Hint.ValueBool()))
+		}
+		if !plan.AutoIpv6Hint.IsNull() && !plan.AutoIpv6Hint.IsUnknown() {
+			params.Set("autoIpv6Hint", fmt.Sprintf("%t", plan.AutoIpv6Hint.ValueBool()))
 		}
 	}
 }

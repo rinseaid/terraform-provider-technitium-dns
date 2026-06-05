@@ -107,6 +107,54 @@ func TestRecordValueFromRData(t *testing.T) {
 			want:       "Failover",
 		},
 		{
+			name:       "ANAME record",
+			recordType: "ANAME",
+			rData:      map[string]interface{}{"aname": "target.example.com"},
+			want:       "target.example.com",
+		},
+		{
+			name:       "DNAME record",
+			recordType: "DNAME",
+			rData:      map[string]interface{}{"dname": "target.example.com"},
+			want:       "target.example.com",
+		},
+		{
+			name:       "NAPTR record",
+			recordType: "NAPTR",
+			rData:      map[string]interface{}{"naptrReplacement": "sip.example.com", "naptrOrder": float64(100), "naptrPreference": float64(10), "naptrFlags": "s", "naptrServices": "SIP+D2U", "naptrRegexp": ""},
+			want:       "sip.example.com",
+		},
+		{
+			name:       "SSHFP record",
+			recordType: "SSHFP",
+			rData:      map[string]interface{}{"sshfpFingerprint": "abc123def456", "sshfpAlgorithm": float64(1), "sshfpFingerprintType": float64(2)},
+			want:       "abc123def456",
+		},
+		{
+			name:       "TLSA record",
+			recordType: "TLSA",
+			rData:      map[string]interface{}{"tlsaCertificateAssociationData": "abc123", "tlsaCertificateUsage": "DANE-EE", "tlsaSelector": "SPKI", "tlsaMatchingType": "SHA2-256"},
+			want:       "abc123",
+		},
+		{
+			name:       "URI record",
+			recordType: "URI",
+			rData:      map[string]interface{}{"uri": "https://example.com", "uriPriority": float64(10), "uriWeight": float64(1)},
+			want:       "https://example.com",
+		},
+		{
+			name:       "DS record",
+			recordType: "DS",
+			rData:      map[string]interface{}{"digest": "abc123", "keyTag": float64(12345), "algorithm": float64(8), "digestType": float64(2)},
+			want:       "abc123",
+		},
+		{
+			name:       "SVCB record",
+			recordType: "SVCB",
+			rData:      map[string]interface{}{"svcTargetName": "svc.example.com", "svcPriority": float64(1), "svcParams": "alpn=h2"},
+			want:       "svc.example.com",
+		},
+		{
 			name:       "unknown type returns empty",
 			recordType: "UNKNOWN",
 			rData:      map[string]interface{}{"foo": "bar"},
@@ -545,5 +593,142 @@ func TestBuildUpdateParams_FWD(t *testing.T) {
 	}
 	if params.Get("newProtocol") != "Tcp" {
 		t.Errorf("newProtocol = %q", params.Get("newProtocol"))
+	}
+}
+
+func TestBuildAddParams_NAPTR(t *testing.T) {
+	plan := &dnsRecordResourceModel{
+		Zone:             types.StringValue("example.com"),
+		Domain:           types.StringValue("example.com"),
+		Type:             types.StringValue("NAPTR"),
+		Value:            types.StringValue("sip.example.com"),
+		TTL:              types.Int64Value(3600),
+		NaptrOrder:       types.Int64Value(100),
+		NaptrPreference:  types.Int64Value(10),
+		NaptrFlags:       types.StringValue("s"),
+		NaptrServices:    types.StringValue("SIP+D2U"),
+		NaptrRegexp:      types.StringValue(""),
+		NaptrReplacement: types.StringValue("sip.example.com"),
+	}
+	params := buildAddParams(plan)
+
+	if params.Get("naptrReplacement") != "sip.example.com" {
+		t.Errorf("naptrReplacement = %q", params.Get("naptrReplacement"))
+	}
+	if params.Get("naptrOrder") != "100" {
+		t.Errorf("naptrOrder = %q", params.Get("naptrOrder"))
+	}
+	if params.Get("naptrPreference") != "10" {
+		t.Errorf("naptrPreference = %q", params.Get("naptrPreference"))
+	}
+	if params.Get("naptrFlags") != "s" {
+		t.Errorf("naptrFlags = %q", params.Get("naptrFlags"))
+	}
+	if params.Get("naptrServices") != "SIP+D2U" {
+		t.Errorf("naptrServices = %q", params.Get("naptrServices"))
+	}
+}
+
+func TestBuildAddParams_SSHFP(t *testing.T) {
+	plan := &dnsRecordResourceModel{
+		Zone:                 types.StringValue("example.com"),
+		Domain:               types.StringValue("host.example.com"),
+		Type:                 types.StringValue("SSHFP"),
+		Value:                types.StringValue("abc123def456"),
+		TTL:                  types.Int64Value(3600),
+		SshfpAlgorithm:       types.Int64Value(1),
+		SshfpFingerprintType: types.Int64Value(2),
+		SshfpFingerprint:     types.StringValue("abc123def456"),
+	}
+	params := buildAddParams(plan)
+
+	if params.Get("sshfpFingerprint") != "abc123def456" {
+		t.Errorf("sshfpFingerprint = %q", params.Get("sshfpFingerprint"))
+	}
+	if params.Get("sshfpAlgorithm") != "1" {
+		t.Errorf("sshfpAlgorithm = %q", params.Get("sshfpAlgorithm"))
+	}
+	if params.Get("sshfpFingerprintType") != "2" {
+		t.Errorf("sshfpFingerprintType = %q", params.Get("sshfpFingerprintType"))
+	}
+}
+
+func TestBuildAddParams_TLSA(t *testing.T) {
+	plan := &dnsRecordResourceModel{
+		Zone:                            types.StringValue("example.com"),
+		Domain:                          types.StringValue("_443._tcp.example.com"),
+		Type:                            types.StringValue("TLSA"),
+		Value:                           types.StringValue("abc123"),
+		TTL:                             types.Int64Value(3600),
+		TlsaCertificateUsage:           types.StringValue("DANE-EE"),
+		TlsaSelector:                   types.StringValue("SPKI"),
+		TlsaMatchingType:               types.StringValue("SHA2-256"),
+		TlsaCertificateAssociationData: types.StringValue("abc123"),
+	}
+	params := buildAddParams(plan)
+
+	if params.Get("tlsaCertificateAssociationData") != "abc123" {
+		t.Errorf("tlsaCertificateAssociationData = %q", params.Get("tlsaCertificateAssociationData"))
+	}
+	if params.Get("tlsaCertificateUsage") != "DANE-EE" {
+		t.Errorf("tlsaCertificateUsage = %q", params.Get("tlsaCertificateUsage"))
+	}
+	if params.Get("tlsaSelector") != "SPKI" {
+		t.Errorf("tlsaSelector = %q", params.Get("tlsaSelector"))
+	}
+	if params.Get("tlsaMatchingType") != "SHA2-256" {
+		t.Errorf("tlsaMatchingType = %q", params.Get("tlsaMatchingType"))
+	}
+}
+
+func TestBuildAddParams_URI(t *testing.T) {
+	plan := &dnsRecordResourceModel{
+		Zone:        types.StringValue("example.com"),
+		Domain:      types.StringValue("example.com"),
+		Type:        types.StringValue("URI"),
+		Value:       types.StringValue("https://example.com"),
+		TTL:         types.Int64Value(3600),
+		UriPriority: types.Int64Value(10),
+		UriWeight:   types.Int64Value(1),
+		Uri:         types.StringValue("https://example.com"),
+	}
+	params := buildAddParams(plan)
+
+	if params.Get("uri") != "https://example.com" {
+		t.Errorf("uri = %q", params.Get("uri"))
+	}
+	if params.Get("uriPriority") != "10" {
+		t.Errorf("uriPriority = %q", params.Get("uriPriority"))
+	}
+	if params.Get("uriWeight") != "1" {
+		t.Errorf("uriWeight = %q", params.Get("uriWeight"))
+	}
+}
+
+func TestBuildAddParams_DS(t *testing.T) {
+	plan := &dnsRecordResourceModel{
+		Zone:         types.StringValue("example.com"),
+		Domain:       types.StringValue("example.com"),
+		Type:         types.StringValue("DS"),
+		Value:        types.StringValue("abc123"),
+		TTL:          types.Int64Value(3600),
+		DsKeyTag:     types.Int64Value(12345),
+		DsAlgorithm:  types.Int64Value(8),
+		DsDigestType: types.Int64Value(2),
+		DsDigest:     types.StringValue("abc123"),
+	}
+	params := buildAddParams(plan)
+
+	if params.Get("digest") != "abc123" {
+		t.Errorf("digest = %q", params.Get("digest"))
+	}
+	if params.Get("keyTag") != "12345" {
+		t.Errorf("keyTag = %q", params.Get("keyTag"))
+	}
+	if params.Get("algorithm") != "8" {
+		t.Errorf("algorithm = %q", params.Get("algorithm"))
+	}
+	if params.Get("digestType") != "2" {
+		t.Errorf("digestType = %q", params.Get("digestType"))
 	}
 }

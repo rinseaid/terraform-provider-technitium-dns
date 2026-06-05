@@ -51,24 +51,56 @@ resource "technitium_dns_settings" "server" {
 - `concurrent_forwarding` (Boolean) Enable concurrent forwarding to all configured forwarders.
 - `default_ns_record_ttl` (Number) Default TTL in seconds for NS records.
 - `default_record_ttl` (Number) Default TTL in seconds for new records.
+- `default_responsible_person` (String) Default responsible person email for SOA records.
 - `default_soa_record_ttl` (Number) Default TTL in seconds for SOA records.
+- `dns_apps_enable_automatic_update` (Boolean) Enable automatic updates for DNS apps.
+- `dns_over_http_port` (Number) Port for DNS-over-HTTP.
+- `dns_over_http_real_ip_header` (String) HTTP header name for real IP detection in DNS-over-HTTP.
+- `dns_over_https_port` (Number) Port for DNS-over-HTTPS.
+- `dns_over_quic_port` (Number) Port for DNS-over-QUIC.
+- `dns_over_tcp_proxy_port` (Number) Port for DNS-over-TCP proxy protocol.
+- `dns_over_tls_port` (Number) Port for DNS-over-TLS.
+- `dns_over_udp_proxy_port` (Number) Port for DNS-over-UDP proxy protocol.
 - `dns_server_domain` (String) The primary domain name used by the DNS server.
+- `dns_tls_certificate_password` (String, Sensitive) Password for the DNS TLS certificate.
+- `dns_tls_certificate_path` (String) File path to the TLS certificate for DNS-over-TLS and DNS-over-HTTPS.
 - `dnssec_validation` (Boolean) Enable DNSSEC validation for DNS responses.
+- `edns_client_subnet` (Boolean) Enable EDNS Client Subnet.
+- `edns_client_subnet_ipv4_override` (String) EDNS Client Subnet IPv4 override address.
+- `edns_client_subnet_ipv4_prefix_length` (Number) EDNS Client Subnet IPv4 prefix length.
+- `edns_client_subnet_ipv6_override` (String) EDNS Client Subnet IPv6 override address.
+- `edns_client_subnet_ipv6_prefix_length` (Number) EDNS Client Subnet IPv6 prefix length.
 - `enable_blocking` (Boolean) Enable DNS-level ad/malware blocking.
+- `enable_dns_over_http` (Boolean) Enable DNS-over-HTTP.
+- `enable_dns_over_http3` (Boolean) Enable DNS-over-HTTP/3.
+- `enable_dns_over_https` (Boolean) Enable DNS-over-HTTPS.
+- `enable_dns_over_quic` (Boolean) Enable DNS-over-QUIC.
+- `enable_dns_over_tcp_proxy` (Boolean) Enable DNS-over-TCP proxy protocol.
+- `enable_dns_over_tls` (Boolean) Enable DNS-over-TLS.
+- `enable_dns_over_udp_proxy` (Boolean) Enable DNS-over-UDP proxy protocol.
+- `enable_in_memory_stats` (Boolean) Enable in-memory statistics.
 - `enable_logging` (Boolean) Enable DNS query logging.
+- `enable_udp_socket_pool` (Boolean) Enable UDP socket pooling.
 - `forwarder_concurrency` (Number) Number of concurrent forwarder queries.
 - `forwarder_protocol` (String) Protocol for DNS forwarding. Valid values: Udp, Tcp, Tls, Https, Quic.
 - `forwarder_retries` (Number) Number of retries for forwarder queries.
 - `forwarder_timeout` (Number) Timeout in milliseconds for forwarder queries.
 - `forwarders` (List of String) List of forwarder DNS server addresses.
+- `ignore_resolver_logs` (Boolean) Ignore resolver log entries.
 - `ipv6_mode` (String) IPv6 mode. Valid values: Disabled, Enabled, Preferred.
 - `listen_backlog` (Number) TCP listen backlog size.
+- `log_folder` (String) Path to the log folder.
 - `log_queries` (Boolean) Log all DNS queries.
+- `logging_type` (String) Logging type.
+- `max_concurrent_resolutions_per_core` (Number) Maximum concurrent DNS resolutions per CPU core.
 - `max_log_file_days` (Number) Number of days to retain log files.
+- `max_stat_file_days` (Number) Number of days to retain statistics files.
 - `min_soa_refresh` (Number) Minimum SOA refresh interval in seconds.
 - `min_soa_retry` (Number) Minimum SOA retry interval in seconds.
 - `prefer_ipv6` (Boolean) Prefer IPv6 for DNS resolution.
 - `qname_minimization` (Boolean) Enable QNAME minimization for recursive queries.
+- `quic_idle_timeout` (Number) QUIC idle timeout in milliseconds.
+- `quic_max_inbound_streams` (Number) Maximum number of inbound QUIC streams.
 - `randomize_name` (Boolean) Randomize query name casing for cache poisoning protection.
 - `recursion` (String) Recursion policy. Valid values: Allow, Deny, AllowOnlyForPrivateNetworks, UseSpecifiedNetworkACL.
 - `resolver_concurrency` (Number) Number of concurrent resolver queries.
@@ -81,11 +113,28 @@ resource "technitium_dns_settings" "server" {
 - `serve_stale_max_wait_time` (Number) Maximum wait time in milliseconds before serving stale.
 - `serve_stale_reset_ttl` (Number) TTL in seconds to reset serve stale timer.
 - `serve_stale_ttl` (Number) TTL in seconds for serve stale records.
+- `server_proxy_address` (String) Proxy server address.
+- `server_proxy_bypass` (String) Proxy bypass list.
+- `server_proxy_password` (String, Sensitive) Proxy server password.
+- `server_proxy_port` (Number) Proxy server port.
+- `server_proxy_type` (String) Proxy type for the DNS server. Valid values: None, Http, Socks5.
+- `server_proxy_username` (String, Sensitive) Proxy server username.
 - `tcp_receive_timeout` (Number) Timeout in milliseconds for TCP receive operations.
 - `tcp_send_timeout` (Number) Timeout in milliseconds for TCP send operations.
 - `udp_payload_size` (Number) Maximum UDP payload size in bytes.
 - `udp_receive_buffer_size_kb` (Number) UDP receive buffer size in kilobytes.
 - `udp_send_buffer_size_kb` (Number) UDP send buffer size in kilobytes.
+- `use_local_time` (Boolean) Use local time in logs.
+- `use_soa_serial_date_scheme` (Boolean) Use date-based SOA serial number scheme.
+- `web_service_enable_http3` (Boolean) Enable HTTP/3 for the web service.
+- `web_service_enable_tls` (Boolean) Enable TLS for the web service.
+- `web_service_http_port` (Number) HTTP port for the web service.
+- `web_service_http_to_tls_redirect` (Boolean) Redirect HTTP to TLS for the web service.
+- `web_service_real_ip_header` (String) HTTP header name for real IP detection in the web service.
+- `web_service_tls_certificate_password` (String, Sensitive) Password for the web service TLS certificate.
+- `web_service_tls_certificate_path` (String) File path to the TLS certificate for the web service.
+- `web_service_tls_port` (Number) TLS port for the web service.
+- `web_service_use_self_signed_tls_certificate` (Boolean) Use a self-signed TLS certificate for the web service.
 
 ### Read-Only
 

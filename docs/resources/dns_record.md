@@ -84,13 +84,27 @@ resource "technitium_dns_record" "forwarder_with_proxy" {
 
 ### Optional
 
+- `aname` (String) Target domain for ANAME records.
 - `app_name` (String) DNS app name for APP records.
+- `auto_ipv4_hint` (Boolean) Automatically generate IPv4 address hints for SVCB/HTTPS records.
+- `auto_ipv6_hint` (Boolean) Automatically generate IPv6 address hints for SVCB/HTTPS records.
 - `class_path` (String) Class path for APP records.
 - `comments` (String) Comments for the record.
 - `disabled` (Boolean) Whether the record is disabled.
+- `dname` (String) Target domain for DNAME records.
 - `dnssec_validation` (Boolean) Enable DNSSEC validation for FWD records.
+- `ds_algorithm` (Number) Algorithm number for DS records.
+- `ds_digest` (String) Digest hex string for DS records.
+- `ds_digest_type` (Number) Digest type for DS records.
+- `ds_key_tag` (Number) Key tag for DS records.
 - `flags` (Number) Flags value for CAA records.
 - `forwarder_priority` (Number) Priority for FWD records. Lower values are queried first; equal values are queried concurrently.
+- `naptr_flags` (String) Flags for NAPTR records.
+- `naptr_order` (Number) Order value for NAPTR records.
+- `naptr_preference` (Number) Preference value for NAPTR records.
+- `naptr_regexp` (String) Regular expression for NAPTR records.
+- `naptr_replacement` (String) Replacement domain for NAPTR records.
+- `naptr_services` (String) Services field for NAPTR records.
 - `port` (Number) Port number for SRV records.
 - `priority` (Number) Priority value for MX and SRV records.
 - `protocol` (String) Forwarding protocol for FWD records. Valid values: Udp, Tcp, Tls, Https, Quic.
@@ -100,8 +114,21 @@ resource "technitium_dns_record" "forwarder_with_proxy" {
 - `proxy_type` (String) Proxy type for FWD records. Valid values: NoProxy, DefaultProxy, Http, Socks5.
 - `proxy_username` (String, Sensitive) Proxy server username for FWD records.
 - `record_data` (String) App-specific record data for APP records.
+- `sshfp_algorithm` (Number) Algorithm number for SSHFP records (1=RSA, 2=DSA, 3=ECDSA, 4=Ed25519).
+- `sshfp_fingerprint` (String) Fingerprint hex string for SSHFP records.
+- `sshfp_fingerprint_type` (Number) Fingerprint type for SSHFP records (1=SHA-1, 2=SHA-256).
+- `svc_params` (String) Service parameters for SVCB/HTTPS records.
+- `svc_priority` (Number) Priority for SVCB/HTTPS records.
+- `svc_target_name` (String) Target name for SVCB/HTTPS records.
 - `tag` (String) Tag value for CAA records (e.g. issue, issuewild, iodef).
+- `tlsa_certificate_association_data` (String) Certificate association data for TLSA records.
+- `tlsa_certificate_usage` (String) Certificate usage for TLSA records.
+- `tlsa_matching_type` (String) Matching type for TLSA records.
+- `tlsa_selector` (String) Selector for TLSA records.
 - `ttl` (Number) Time to live in seconds.
+- `uri` (String) URI value for URI records.
+- `uri_priority` (Number) Priority for URI records.
+- `uri_weight` (Number) Weight for URI records.
 - `weight` (Number) Weight value for SRV records.
 
 ### Read-Only
