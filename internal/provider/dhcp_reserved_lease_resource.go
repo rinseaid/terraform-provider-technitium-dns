@@ -18,8 +18,9 @@ import (
 )
 
 var (
-	_ resource.Resource                = &dhcpReservedLeaseResource{}
-	_ resource.ResourceWithImportState = &dhcpReservedLeaseResource{}
+	_ resource.Resource                   = &dhcpReservedLeaseResource{}
+	_ resource.ResourceWithImportState    = &dhcpReservedLeaseResource{}
+	_ resource.ResourceWithUpgradeState   = &dhcpReservedLeaseResource{}
 )
 
 func NewDHCPReservedLeaseResource() resource.Resource {
@@ -45,6 +46,7 @@ func (r *dhcpReservedLeaseResource) Metadata(_ context.Context, req resource.Met
 
 func (r *dhcpReservedLeaseResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Version:     1,
 		Description: "Manages a reserved DHCP lease in a Technitium DNS Server DHCP scope.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -247,6 +249,47 @@ func (r *dhcpReservedLeaseResource) ImportState(ctx context.Context, req resourc
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), compositeLeaseID(parts[0], normalizedMAC))...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("scope_name"), parts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("hardware_address"), normalizedMAC)...)
+}
+
+func (r *dhcpReservedLeaseResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schema.Schema{
+				Attributes: map[string]schema.Attribute{
+					"id":               schema.StringAttribute{Computed: true},
+					"scope_name":       schema.StringAttribute{Required: true},
+					"hardware_address": schema.StringAttribute{Required: true},
+					"address":          schema.StringAttribute{Required: true},
+					"hostname":         schema.StringAttribute{Optional: true},
+					"comments":         schema.StringAttribute{Optional: true},
+				},
+			},
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var oldState struct {
+					ID              types.String `tfsdk:"id"`
+					ScopeName       types.String `tfsdk:"scope_name"`
+					HardwareAddress types.String `tfsdk:"hardware_address"`
+					Address         types.String `tfsdk:"address"`
+					Hostname        types.String `tfsdk:"hostname"`
+					Comments        types.String `tfsdk:"comments"`
+				}
+				resp.Diagnostics.Append(req.State.Get(ctx, &oldState)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				newState := dhcpReservedLeaseResourceModel{
+					ID:              oldState.ID,
+					ScopeName:       oldState.ScopeName,
+					HardwareAddress: oldState.HardwareAddress,
+					Address:         oldState.Address,
+					Hostname:        oldState.Hostname,
+					Comments:        oldState.Comments,
+				}
+				resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
+			},
+		},
+	}
 }
 
 func (r *dhcpReservedLeaseResource) buildAddParams(model *dhcpReservedLeaseResourceModel) url.Values {
