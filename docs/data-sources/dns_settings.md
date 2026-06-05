@@ -29,13 +29,46 @@ output "blocking_enabled" {
 
 ### Read-Only
 
+- `allow_txt_blocking_report` (Boolean) Whether TXT record blocking report queries are allowed.
+- `block_list_update_interval_hours` (Number) Interval in hours between block list updates.
+- `blocking_answer_ttl` (Number) TTL in seconds for blocked DNS responses.
 - `blocking_type` (String) How blocked queries are answered.
+- `cache_failure_record_ttl` (Number) TTL in seconds for cached failure records.
+- `cache_prefetch_eligibility` (Number) Minimum number of hits for a record to be eligible for cache prefetch.
+- `cache_prefetch_sample_eligibility_hits_per_hour` (Number) Minimum hits per hour for a record to be eligible for prefetch sampling.
+- `cache_prefetch_sample_interval_minutes` (Number) Interval in minutes between cache prefetch sampling.
+- `cache_prefetch_trigger` (Number) Number of hits to trigger a cache prefetch.
+- `client_timeout` (Number) Timeout in milliseconds for client connections.
+- `concurrent_forwarding` (Boolean) Whether concurrent forwarding to all configured forwarders is enabled.
+- `default_ns_record_ttl` (Number) Default TTL in seconds for NS records.
+- `default_soa_record_ttl` (Number) Default TTL in seconds for SOA records.
 - `dns_server_domain` (String) The primary domain name used by the DNS server.
 - `dnssec_validation` (Boolean) Whether DNSSEC validation is enabled.
 - `enable_blocking` (Boolean) Whether DNS-level blocking is enabled.
 - `enable_logging` (Boolean) Whether DNS query logging is enabled.
+- `forwarder_concurrency` (Number) Number of concurrent forwarder queries.
 - `forwarder_protocol` (String) Protocol used for DNS forwarding.
+- `forwarder_retries` (Number) Number of retries for forwarder queries.
+- `forwarder_timeout` (Number) Timeout in milliseconds for forwarder queries.
 - `forwarders` (List of String) List of forwarder DNS server addresses.
+- `ipv6_mode` (String) IPv6 mode.
+- `listen_backlog` (Number) TCP listen backlog size.
 - `log_queries` (Boolean) Whether all DNS queries are logged.
+- `min_soa_refresh` (Number) Minimum SOA refresh interval in seconds.
+- `min_soa_retry` (Number) Minimum SOA retry interval in seconds.
 - `prefer_ipv6` (Boolean) Whether IPv6 is preferred for DNS resolution.
 - `recursion` (String) The recursion policy.
+- `resolver_concurrency` (Number) Number of concurrent resolver queries.
+- `resolver_max_stack_count` (Number) Maximum number of resolver stack entries.
+- `resolver_retries` (Number) Number of retries for resolver queries.
+- `resolver_timeout` (Number) Timeout in milliseconds for resolver queries.
+- `save_cache` (Boolean) Whether DNS cache is saved to disk on shutdown.
+- `serve_stale_answer_ttl` (Number) TTL in seconds used in stale answers.
+- `serve_stale_max_wait_time` (Number) Maximum wait time in milliseconds before serving stale.
+- `serve_stale_reset_ttl` (Number) TTL in seconds to reset serve stale timer.
+- `serve_stale_ttl` (Number) TTL in seconds for serve stale records.
+- `tcp_receive_timeout` (Number) Timeout in milliseconds for TCP receive operations.
+- `tcp_send_timeout` (Number) Timeout in milliseconds for TCP send operations.
+- `udp_payload_size` (Number) Maximum UDP payload size in bytes.
+- `udp_receive_buffer_size_kb` (Number) UDP receive buffer size in kilobytes.
+- `udp_send_buffer_size_kb` (Number) UDP send buffer size in kilobytes.

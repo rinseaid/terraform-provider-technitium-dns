@@ -441,3 +441,27 @@ func (c *Client) GetTSIGKeyNames() (map[string]interface{}, error) {
 func (c *Client) ListCatalogZones() (map[string]interface{}, error) {
 	return c.doRequest(http.MethodGet, "zones/catalogs/list", nil)
 }
+
+// ---------------------------------------------------------------------------
+// DNS Apps
+// ---------------------------------------------------------------------------
+
+// ListApps returns all installed DNS apps.
+func (c *Client) ListApps() (map[string]interface{}, error) {
+	return c.doRequest(http.MethodGet, "apps/list", nil)
+}
+
+// GetAppConfig returns the configuration for a DNS app.
+func (c *Client) GetAppConfig(name string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("name", name)
+	return c.doRequest(http.MethodGet, "apps/getConfig", params)
+}
+
+// SetAppConfig updates the configuration for a DNS app.
+func (c *Client) SetAppConfig(name string, config string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("name", name)
+	params.Set("config", config)
+	return c.doRequest(http.MethodPost, "apps/setConfig", params)
+}

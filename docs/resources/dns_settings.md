@@ -33,26 +33,59 @@ resource "technitium_dns_settings" "server" {
 
 ### Optional
 
+- `allow_txt_blocking_report` (Boolean) Allow TXT record blocking report queries.
+- `block_list_update_interval_hours` (Number) Interval in hours between block list updates.
 - `block_list_urls` (List of String) URLs of DNS block lists.
+- `blocking_answer_ttl` (Number) TTL in seconds for blocked DNS responses.
 - `blocking_type` (String) How blocked queries are answered. Valid values: AnyAddress, NxDomain, CustomAddress.
+- `cache_failure_record_ttl` (Number) TTL in seconds for cached failure records.
 - `cache_maximum_entries` (Number) Maximum number of entries in the DNS cache.
 - `cache_maximum_record_ttl` (Number) Maximum TTL in seconds for cached records.
 - `cache_minimum_record_ttl` (Number) Minimum TTL in seconds for cached records.
 - `cache_negative_record_ttl` (Number) TTL in seconds for negative (NXDOMAIN) cache entries.
+- `cache_prefetch_eligibility` (Number) Minimum number of hits for a record to be eligible for cache prefetch.
+- `cache_prefetch_sample_eligibility_hits_per_hour` (Number) Minimum hits per hour for a record to be eligible for prefetch sampling.
+- `cache_prefetch_sample_interval_minutes` (Number) Interval in minutes between cache prefetch sampling.
+- `cache_prefetch_trigger` (Number) Number of hits to trigger a cache prefetch.
+- `client_timeout` (Number) Timeout in milliseconds for client connections.
+- `concurrent_forwarding` (Boolean) Enable concurrent forwarding to all configured forwarders.
+- `default_ns_record_ttl` (Number) Default TTL in seconds for NS records.
 - `default_record_ttl` (Number) Default TTL in seconds for new records.
+- `default_soa_record_ttl` (Number) Default TTL in seconds for SOA records.
 - `dns_server_domain` (String) The primary domain name used by the DNS server.
 - `dnssec_validation` (Boolean) Enable DNSSEC validation for DNS responses.
 - `enable_blocking` (Boolean) Enable DNS-level ad/malware blocking.
 - `enable_logging` (Boolean) Enable DNS query logging.
+- `forwarder_concurrency` (Number) Number of concurrent forwarder queries.
 - `forwarder_protocol` (String) Protocol for DNS forwarding. Valid values: Udp, Tcp, Tls, Https, Quic.
+- `forwarder_retries` (Number) Number of retries for forwarder queries.
+- `forwarder_timeout` (Number) Timeout in milliseconds for forwarder queries.
 - `forwarders` (List of String) List of forwarder DNS server addresses.
+- `ipv6_mode` (String) IPv6 mode. Valid values: Disabled, Enabled, Preferred.
+- `listen_backlog` (Number) TCP listen backlog size.
 - `log_queries` (Boolean) Log all DNS queries.
 - `max_log_file_days` (Number) Number of days to retain log files.
+- `min_soa_refresh` (Number) Minimum SOA refresh interval in seconds.
+- `min_soa_retry` (Number) Minimum SOA retry interval in seconds.
 - `prefer_ipv6` (Boolean) Prefer IPv6 for DNS resolution.
 - `qname_minimization` (Boolean) Enable QNAME minimization for recursive queries.
 - `randomize_name` (Boolean) Randomize query name casing for cache poisoning protection.
 - `recursion` (String) Recursion policy. Valid values: Allow, Deny, AllowOnlyForPrivateNetworks, UseSpecifiedNetworkACL.
+- `resolver_concurrency` (Number) Number of concurrent resolver queries.
+- `resolver_max_stack_count` (Number) Maximum number of resolver stack entries.
+- `resolver_retries` (Number) Number of retries for resolver queries.
+- `resolver_timeout` (Number) Timeout in milliseconds for resolver queries.
+- `save_cache` (Boolean) Save DNS cache to disk on shutdown.
 - `serve_stale` (Boolean) Serve stale cached records when upstream is unavailable.
+- `serve_stale_answer_ttl` (Number) TTL in seconds used in stale answers.
+- `serve_stale_max_wait_time` (Number) Maximum wait time in milliseconds before serving stale.
+- `serve_stale_reset_ttl` (Number) TTL in seconds to reset serve stale timer.
+- `serve_stale_ttl` (Number) TTL in seconds for serve stale records.
+- `tcp_receive_timeout` (Number) Timeout in milliseconds for TCP receive operations.
+- `tcp_send_timeout` (Number) Timeout in milliseconds for TCP send operations.
+- `udp_payload_size` (Number) Maximum UDP payload size in bytes.
+- `udp_receive_buffer_size_kb` (Number) UDP receive buffer size in kilobytes.
+- `udp_send_buffer_size_kb` (Number) UDP send buffer size in kilobytes.
 
 ### Read-Only
 

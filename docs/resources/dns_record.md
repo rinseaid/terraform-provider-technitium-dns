@@ -84,6 +84,8 @@ resource "technitium_dns_record" "forwarder_with_proxy" {
 
 ### Optional
 
+- `app_name` (String) DNS app name for APP records.
+- `class_path` (String) Class path for APP records.
 - `comments` (String) Comments for the record.
 - `disabled` (Boolean) Whether the record is disabled.
 - `dnssec_validation` (Boolean) Enable DNSSEC validation for FWD records.
@@ -97,6 +99,7 @@ resource "technitium_dns_record" "forwarder_with_proxy" {
 - `proxy_port` (Number) Proxy server port for FWD records.
 - `proxy_type` (String) Proxy type for FWD records. Valid values: NoProxy, DefaultProxy, Http, Socks5.
 - `proxy_username` (String, Sensitive) Proxy server username for FWD records.
+- `record_data` (String) App-specific record data for APP records.
 - `tag` (String) Tag value for CAA records (e.g. issue, issuewild, iodef).
 - `ttl` (Number) Time to live in seconds.
 - `weight` (Number) Weight value for SRV records.

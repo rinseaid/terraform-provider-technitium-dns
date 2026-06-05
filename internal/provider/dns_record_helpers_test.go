@@ -101,6 +101,12 @@ func TestRecordValueFromRData(t *testing.T) {
 			want:       "1.1.1.1",
 		},
 		{
+			name:       "APP record",
+			recordType: "APP",
+			rData:      map[string]interface{}{"appName": "Failover"},
+			want:       "Failover",
+		},
+		{
 			name:       "unknown type returns empty",
 			recordType: "UNKNOWN",
 			rData:      map[string]interface{}{"foo": "bar"},
@@ -482,6 +488,30 @@ func TestBuildUpdateParams_SRV(t *testing.T) {
 	}
 	if params.Get("newPort") != "5061" {
 		t.Errorf("newPort = %q", params.Get("newPort"))
+	}
+}
+
+func TestBuildAddParams_APP(t *testing.T) {
+	plan := &dnsRecordResourceModel{
+		Zone:       types.StringValue("example.com"),
+		Domain:     types.StringValue("example.com"),
+		Type:       types.StringValue("APP"),
+		Value:      types.StringValue("Failover"),
+		TTL:        types.Int64Value(3600),
+		AppName:    types.StringValue("Failover"),
+		ClassPath:  types.StringValue("FailoverApp.Handler"),
+		RecordData: types.StringValue("{}"),
+	}
+	params := buildAddParams(plan)
+
+	if params.Get("appName") != "Failover" {
+		t.Errorf("appName = %q", params.Get("appName"))
+	}
+	if params.Get("classPath") != "FailoverApp.Handler" {
+		t.Errorf("classPath = %q", params.Get("classPath"))
+	}
+	if params.Get("recordData") != "{}" {
+		t.Errorf("recordData = %q", params.Get("recordData"))
 	}
 }
 

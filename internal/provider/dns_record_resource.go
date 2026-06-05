@@ -56,6 +56,9 @@ type dnsRecordResourceModel struct {
 	ProxyPort         types.Int64  `tfsdk:"proxy_port"`
 	ProxyUsername     types.String `tfsdk:"proxy_username"`
 	ProxyPassword     types.String `tfsdk:"proxy_password"`
+	AppName           types.String `tfsdk:"app_name"`
+	ClassPath         types.String `tfsdk:"class_path"`
+	RecordData        types.String `tfsdk:"record_data"`
 }
 
 func (r *dnsRecordResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -92,7 +95,7 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf(
-						"A", "AAAA", "CNAME", "MX", "TXT", "SRV", "NS", "PTR", "CAA", "SOA", "FWD",
+						"A", "AAAA", "CNAME", "MX", "TXT", "SRV", "NS", "PTR", "CAA", "SOA", "FWD", "APP",
 					),
 				},
 			},
@@ -181,6 +184,18 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Description: "Proxy server password for FWD records.",
 				Optional:    true,
 				Sensitive:   true,
+			},
+			"app_name": schema.StringAttribute{
+				Description: "DNS app name for APP records.",
+				Optional:    true,
+			},
+			"class_path": schema.StringAttribute{
+				Description: "Class path for APP records.",
+				Optional:    true,
+			},
+			"record_data": schema.StringAttribute{
+				Description: "App-specific record data for APP records.",
+				Optional:    true,
 			},
 		},
 	}
@@ -470,6 +485,18 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 			} else if !model.ProxyPassword.IsNull() {
 				model.ProxyPassword = types.StringNull()
 			}
+		case "APP":
+			if an, ok := rData["appName"].(string); ok && an != "" {
+				model.AppName = types.StringValue(an)
+			}
+			if cp, ok := rData["classPath"].(string); ok && cp != "" {
+				model.ClassPath = types.StringValue(cp)
+			}
+			if rd, ok := rData["recordData"].(string); ok && rd != "" {
+				model.RecordData = types.StringValue(rd)
+			} else if !model.RecordData.IsNull() {
+				model.RecordData = types.StringNull()
+			}
 		}
 	}
 }
@@ -511,6 +538,9 @@ func recordValueFromRData(rec map[string]interface{}, recordType string) string 
 		return v
 	case "FWD":
 		v, _ := rData["forwarder"].(string)
+		return v
+	case "APP":
+		v, _ := rData["appName"].(string)
 		return v
 	default:
 		return ""
@@ -665,6 +695,16 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		if !plan.ProxyPassword.IsNull() && !plan.ProxyPassword.IsUnknown() {
 			params.Set("proxyPassword", plan.ProxyPassword.ValueString())
 		}
+	case "APP":
+		if !plan.AppName.IsNull() && !plan.AppName.IsUnknown() {
+			params.Set("appName", plan.AppName.ValueString())
+		}
+		if !plan.ClassPath.IsNull() && !plan.ClassPath.IsUnknown() {
+			params.Set("classPath", plan.ClassPath.ValueString())
+		}
+		if !plan.RecordData.IsNull() && !plan.RecordData.IsUnknown() {
+			params.Set("recordData", plan.RecordData.ValueString())
+		}
 	}
 
 	return params
@@ -717,6 +757,16 @@ func buildDeleteParams(state *dnsRecordResourceModel) url.Values {
 		params.Set("forwarder", value)
 		if !state.Protocol.IsNull() && !state.Protocol.IsUnknown() {
 			params.Set("protocol", state.Protocol.ValueString())
+		}
+	case "APP":
+		if !state.AppName.IsNull() && !state.AppName.IsUnknown() {
+			params.Set("appName", state.AppName.ValueString())
+		}
+		if !state.ClassPath.IsNull() && !state.ClassPath.IsUnknown() {
+			params.Set("classPath", state.ClassPath.ValueString())
+		}
+		if !state.RecordData.IsNull() && !state.RecordData.IsUnknown() {
+			params.Set("recordData", state.RecordData.ValueString())
 		}
 	}
 
@@ -790,6 +840,16 @@ func setValueParams(params url.Values, plan *dnsRecordResourceModel) {
 		}
 		if !plan.ProxyPassword.IsNull() && !plan.ProxyPassword.IsUnknown() {
 			params.Set("proxyPassword", plan.ProxyPassword.ValueString())
+		}
+	case "APP":
+		if !plan.AppName.IsNull() && !plan.AppName.IsUnknown() {
+			params.Set("appName", plan.AppName.ValueString())
+		}
+		if !plan.ClassPath.IsNull() && !plan.ClassPath.IsUnknown() {
+			params.Set("classPath", plan.ClassPath.ValueString())
+		}
+		if !plan.RecordData.IsNull() && !plan.RecordData.IsUnknown() {
+			params.Set("recordData", plan.RecordData.ValueString())
 		}
 	}
 }

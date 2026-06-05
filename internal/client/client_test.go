@@ -346,6 +346,36 @@ func newTestServer() *httptest.Server {
 		})
 	})
 
+	mux.HandleFunc("/api/apps/list", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"apps": []interface{}{
+					map[string]interface{}{
+						"name":    "Failover",
+						"version": "1.0",
+					},
+				},
+			},
+		})
+	})
+
+	mux.HandleFunc("/api/apps/getConfig", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"config": "{}",
+			},
+		})
+	})
+
+	mux.HandleFunc("/api/apps/setConfig", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{},
+		})
+	})
+
 	return httptest.NewServer(mux)
 }
 
@@ -1191,6 +1221,59 @@ func TestDeleteRecord_MissingParams(t *testing.T) {
 			t.Fatal("expected error for missing type")
 		}
 	})
+}
+
+func TestListApps(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, err := c.ListApps()
+	if err != nil {
+		t.Fatalf("ListApps failed: %v", err)
+	}
+
+	apps, ok := resp["apps"].([]interface{})
+	if !ok {
+		t.Fatal("response missing 'apps' array")
+	}
+	if len(apps) != 1 {
+		t.Errorf("expected 1 app, got %d", len(apps))
+	}
+}
+
+func TestGetAppConfig(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	_, err = c.GetAppConfig("Failover")
+	if err != nil {
+		t.Fatalf("GetAppConfig failed: %v", err)
+	}
+}
+
+func TestSetAppConfig(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, "admin", "admin")
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	_, err = c.SetAppConfig("Failover", "{}")
+	if err != nil {
+		t.Fatalf("SetAppConfig failed: %v", err)
+	}
 }
 
 func TestInvalidToken(t *testing.T) {

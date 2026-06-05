@@ -28,7 +28,7 @@ resource "technitium_dhcp_reserved_lease" "server" {
 ### Required
 
 - `address` (String) The reserved IP address for the client.
-- `hardware_address` (String) The MAC address of the client device.
+- `hardware_address` (String) The MAC address of the client device. Stored in lowercase colon-separated format.
 - `scope_name` (String) The name of the DHCP scope containing this reservation.
 
 ### Optional

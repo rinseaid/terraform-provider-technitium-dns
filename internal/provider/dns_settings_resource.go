@@ -48,6 +48,39 @@ type dnsSettingsResourceModel struct {
 	EnableLogging          types.Bool   `tfsdk:"enable_logging"`
 	LogQueries             types.Bool   `tfsdk:"log_queries"`
 	MaxLogFileDays         types.Int64  `tfsdk:"max_log_file_days"`
+	AllowTxtBlockingReport                   types.Bool   `tfsdk:"allow_txt_blocking_report"`
+	BlockingAnswerTtl                        types.Int64  `tfsdk:"blocking_answer_ttl"`
+	BlockListUpdateIntervalHours             types.Int64  `tfsdk:"block_list_update_interval_hours"`
+	CachePrefetchEligibility                 types.Int64  `tfsdk:"cache_prefetch_eligibility"`
+	CachePrefetchTrigger                     types.Int64  `tfsdk:"cache_prefetch_trigger"`
+	CachePrefetchSampleIntervalMinutes       types.Int64  `tfsdk:"cache_prefetch_sample_interval_minutes"`
+	CachePrefetchSampleEligibilityHitsPerHour types.Int64 `tfsdk:"cache_prefetch_sample_eligibility_hits_per_hour"`
+	CacheFailureRecordTtl                    types.Int64  `tfsdk:"cache_failure_record_ttl"`
+	SaveCache                                types.Bool   `tfsdk:"save_cache"`
+	ServeStaleTtl                            types.Int64  `tfsdk:"serve_stale_ttl"`
+	ServeStaleAnswerTtl                      types.Int64  `tfsdk:"serve_stale_answer_ttl"`
+	ServeStaleMaxWaitTime                    types.Int64  `tfsdk:"serve_stale_max_wait_time"`
+	ServeStaleResetTtl                       types.Int64  `tfsdk:"serve_stale_reset_ttl"`
+	ForwarderRetries                         types.Int64  `tfsdk:"forwarder_retries"`
+	ForwarderTimeout                         types.Int64  `tfsdk:"forwarder_timeout"`
+	ForwarderConcurrency                     types.Int64  `tfsdk:"forwarder_concurrency"`
+	ConcurrentForwarding                     types.Bool   `tfsdk:"concurrent_forwarding"`
+	ResolverRetries                          types.Int64  `tfsdk:"resolver_retries"`
+	ResolverTimeout                          types.Int64  `tfsdk:"resolver_timeout"`
+	ResolverConcurrency                      types.Int64  `tfsdk:"resolver_concurrency"`
+	ResolverMaxStackCount                    types.Int64  `tfsdk:"resolver_max_stack_count"`
+	ClientTimeout                            types.Int64  `tfsdk:"client_timeout"`
+	UdpPayloadSize                           types.Int64  `tfsdk:"udp_payload_size"`
+	TcpReceiveTimeout                        types.Int64  `tfsdk:"tcp_receive_timeout"`
+	TcpSendTimeout                           types.Int64  `tfsdk:"tcp_send_timeout"`
+	UdpReceiveBufferSizeKb                   types.Int64  `tfsdk:"udp_receive_buffer_size_kb"`
+	UdpSendBufferSizeKb                      types.Int64  `tfsdk:"udp_send_buffer_size_kb"`
+	Ipv6Mode                                 types.String `tfsdk:"ipv6_mode"`
+	ListenBacklog                            types.Int64  `tfsdk:"listen_backlog"`
+	DefaultSoaRecordTtl                      types.Int64  `tfsdk:"default_soa_record_ttl"`
+	DefaultNsRecordTtl                       types.Int64  `tfsdk:"default_ns_record_ttl"`
+	MinSoaRefresh                            types.Int64  `tfsdk:"min_soa_refresh"`
+	MinSoaRetry                              types.Int64  `tfsdk:"min_soa_retry"`
 }
 
 func (r *dnsSettingsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -170,6 +203,174 @@ func (r *dnsSettingsResource) Schema(_ context.Context, _ resource.SchemaRequest
 			},
 			"max_log_file_days": schema.Int64Attribute{
 				Description: "Number of days to retain log files.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"allow_txt_blocking_report": schema.BoolAttribute{
+				Description: "Allow TXT record blocking report queries.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"blocking_answer_ttl": schema.Int64Attribute{
+				Description: "TTL in seconds for blocked DNS responses.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"block_list_update_interval_hours": schema.Int64Attribute{
+				Description: "Interval in hours between block list updates.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"cache_prefetch_eligibility": schema.Int64Attribute{
+				Description: "Minimum number of hits for a record to be eligible for cache prefetch.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"cache_prefetch_trigger": schema.Int64Attribute{
+				Description: "Number of hits to trigger a cache prefetch.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"cache_prefetch_sample_interval_minutes": schema.Int64Attribute{
+				Description: "Interval in minutes between cache prefetch sampling.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"cache_prefetch_sample_eligibility_hits_per_hour": schema.Int64Attribute{
+				Description: "Minimum hits per hour for a record to be eligible for prefetch sampling.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"cache_failure_record_ttl": schema.Int64Attribute{
+				Description: "TTL in seconds for cached failure records.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"save_cache": schema.BoolAttribute{
+				Description: "Save DNS cache to disk on shutdown.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"serve_stale_ttl": schema.Int64Attribute{
+				Description: "TTL in seconds for serve stale records.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"serve_stale_answer_ttl": schema.Int64Attribute{
+				Description: "TTL in seconds used in stale answers.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"serve_stale_max_wait_time": schema.Int64Attribute{
+				Description: "Maximum wait time in milliseconds before serving stale.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"serve_stale_reset_ttl": schema.Int64Attribute{
+				Description: "TTL in seconds to reset serve stale timer.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"forwarder_retries": schema.Int64Attribute{
+				Description: "Number of retries for forwarder queries.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"forwarder_timeout": schema.Int64Attribute{
+				Description: "Timeout in milliseconds for forwarder queries.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"forwarder_concurrency": schema.Int64Attribute{
+				Description: "Number of concurrent forwarder queries.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"concurrent_forwarding": schema.BoolAttribute{
+				Description: "Enable concurrent forwarding to all configured forwarders.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"resolver_retries": schema.Int64Attribute{
+				Description: "Number of retries for resolver queries.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"resolver_timeout": schema.Int64Attribute{
+				Description: "Timeout in milliseconds for resolver queries.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"resolver_concurrency": schema.Int64Attribute{
+				Description: "Number of concurrent resolver queries.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"resolver_max_stack_count": schema.Int64Attribute{
+				Description: "Maximum number of resolver stack entries.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"client_timeout": schema.Int64Attribute{
+				Description: "Timeout in milliseconds for client connections.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"udp_payload_size": schema.Int64Attribute{
+				Description: "Maximum UDP payload size in bytes.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"tcp_receive_timeout": schema.Int64Attribute{
+				Description: "Timeout in milliseconds for TCP receive operations.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"tcp_send_timeout": schema.Int64Attribute{
+				Description: "Timeout in milliseconds for TCP send operations.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"udp_receive_buffer_size_kb": schema.Int64Attribute{
+				Description: "UDP receive buffer size in kilobytes.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"udp_send_buffer_size_kb": schema.Int64Attribute{
+				Description: "UDP send buffer size in kilobytes.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"ipv6_mode": schema.StringAttribute{
+				Description: "IPv6 mode. Valid values: Disabled, Enabled, Preferred.",
+				Optional:    true,
+				Computed:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("Disabled", "Enabled", "Preferred"),
+				},
+			},
+			"listen_backlog": schema.Int64Attribute{
+				Description: "TCP listen backlog size.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"default_soa_record_ttl": schema.Int64Attribute{
+				Description: "Default TTL in seconds for SOA records.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"default_ns_record_ttl": schema.Int64Attribute{
+				Description: "Default TTL in seconds for NS records.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"min_soa_refresh": schema.Int64Attribute{
+				Description: "Minimum SOA refresh interval in seconds.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"min_soa_retry": schema.Int64Attribute{
+				Description: "Minimum SOA retry interval in seconds.",
 				Optional:    true,
 				Computed:    true,
 			},
@@ -346,6 +547,106 @@ func (r *dnsSettingsResource) readIntoModel(ctx context.Context, model *dnsSetti
 		model.MaxLogFileDays = types.Int64Value(int64(v))
 	}
 
+	if v, ok := response["allowTxtBlockingReport"].(bool); ok {
+		model.AllowTxtBlockingReport = types.BoolValue(v)
+	}
+	if v, ok := response["blockingAnswerTtl"].(float64); ok {
+		model.BlockingAnswerTtl = types.Int64Value(int64(v))
+	}
+	if v, ok := response["blockListUpdateIntervalHours"].(float64); ok {
+		model.BlockListUpdateIntervalHours = types.Int64Value(int64(v))
+	}
+	if v, ok := response["cachePrefetchEligibility"].(float64); ok {
+		model.CachePrefetchEligibility = types.Int64Value(int64(v))
+	}
+	if v, ok := response["cachePrefetchTrigger"].(float64); ok {
+		model.CachePrefetchTrigger = types.Int64Value(int64(v))
+	}
+	if v, ok := response["cachePrefetchSampleIntervalInMinutes"].(float64); ok {
+		model.CachePrefetchSampleIntervalMinutes = types.Int64Value(int64(v))
+	}
+	if v, ok := response["cachePrefetchSampleEligibilityHitsPerHour"].(float64); ok {
+		model.CachePrefetchSampleEligibilityHitsPerHour = types.Int64Value(int64(v))
+	}
+	if v, ok := response["cacheFailureRecordTtl"].(float64); ok {
+		model.CacheFailureRecordTtl = types.Int64Value(int64(v))
+	}
+	if v, ok := response["saveCache"].(bool); ok {
+		model.SaveCache = types.BoolValue(v)
+	}
+	if v, ok := response["serveStaleTtl"].(float64); ok {
+		model.ServeStaleTtl = types.Int64Value(int64(v))
+	}
+	if v, ok := response["serveStaleAnswerTtl"].(float64); ok {
+		model.ServeStaleAnswerTtl = types.Int64Value(int64(v))
+	}
+	if v, ok := response["serveStaleMaxWaitTime"].(float64); ok {
+		model.ServeStaleMaxWaitTime = types.Int64Value(int64(v))
+	}
+	if v, ok := response["serveStaleResetTtl"].(float64); ok {
+		model.ServeStaleResetTtl = types.Int64Value(int64(v))
+	}
+	if v, ok := response["forwarderRetries"].(float64); ok {
+		model.ForwarderRetries = types.Int64Value(int64(v))
+	}
+	if v, ok := response["forwarderTimeout"].(float64); ok {
+		model.ForwarderTimeout = types.Int64Value(int64(v))
+	}
+	if v, ok := response["forwarderConcurrency"].(float64); ok {
+		model.ForwarderConcurrency = types.Int64Value(int64(v))
+	}
+	if v, ok := response["concurrentForwarding"].(bool); ok {
+		model.ConcurrentForwarding = types.BoolValue(v)
+	}
+	if v, ok := response["resolverRetries"].(float64); ok {
+		model.ResolverRetries = types.Int64Value(int64(v))
+	}
+	if v, ok := response["resolverTimeout"].(float64); ok {
+		model.ResolverTimeout = types.Int64Value(int64(v))
+	}
+	if v, ok := response["resolverConcurrency"].(float64); ok {
+		model.ResolverConcurrency = types.Int64Value(int64(v))
+	}
+	if v, ok := response["resolverMaxStackCount"].(float64); ok {
+		model.ResolverMaxStackCount = types.Int64Value(int64(v))
+	}
+	if v, ok := response["clientTimeout"].(float64); ok {
+		model.ClientTimeout = types.Int64Value(int64(v))
+	}
+	if v, ok := response["udpPayloadSize"].(float64); ok {
+		model.UdpPayloadSize = types.Int64Value(int64(v))
+	}
+	if v, ok := response["tcpReceiveTimeout"].(float64); ok {
+		model.TcpReceiveTimeout = types.Int64Value(int64(v))
+	}
+	if v, ok := response["tcpSendTimeout"].(float64); ok {
+		model.TcpSendTimeout = types.Int64Value(int64(v))
+	}
+	if v, ok := response["udpReceiveBufferSizeKB"].(float64); ok {
+		model.UdpReceiveBufferSizeKb = types.Int64Value(int64(v))
+	}
+	if v, ok := response["udpSendBufferSizeKB"].(float64); ok {
+		model.UdpSendBufferSizeKb = types.Int64Value(int64(v))
+	}
+	if v, ok := response["ipv6Mode"].(string); ok {
+		model.Ipv6Mode = types.StringValue(v)
+	}
+	if v, ok := response["listenBacklog"].(float64); ok {
+		model.ListenBacklog = types.Int64Value(int64(v))
+	}
+	if v, ok := response["defaultSoaRecordTtl"].(float64); ok {
+		model.DefaultSoaRecordTtl = types.Int64Value(int64(v))
+	}
+	if v, ok := response["defaultNsRecordTtl"].(float64); ok {
+		model.DefaultNsRecordTtl = types.Int64Value(int64(v))
+	}
+	if v, ok := response["minSoaRefresh"].(float64); ok {
+		model.MinSoaRefresh = types.Int64Value(int64(v))
+	}
+	if v, ok := response["minSoaRetry"].(float64); ok {
+		model.MinSoaRetry = types.Int64Value(int64(v))
+	}
+
 	if v, ok := response["blockListUrls"].([]interface{}); ok {
 		urls := make([]string, len(v))
 		for i, u := range v {
@@ -429,6 +730,106 @@ func (r *dnsSettingsResource) buildSetParams(ctx context.Context, model *dnsSett
 	}
 	if !model.MaxLogFileDays.IsNull() && !model.MaxLogFileDays.IsUnknown() {
 		params.Set("maxLogFileDays", fmt.Sprintf("%d", model.MaxLogFileDays.ValueInt64()))
+	}
+
+	if !model.AllowTxtBlockingReport.IsNull() && !model.AllowTxtBlockingReport.IsUnknown() {
+		params.Set("allowTxtBlockingReport", fmt.Sprintf("%t", model.AllowTxtBlockingReport.ValueBool()))
+	}
+	if !model.BlockingAnswerTtl.IsNull() && !model.BlockingAnswerTtl.IsUnknown() {
+		params.Set("blockingAnswerTtl", fmt.Sprintf("%d", model.BlockingAnswerTtl.ValueInt64()))
+	}
+	if !model.BlockListUpdateIntervalHours.IsNull() && !model.BlockListUpdateIntervalHours.IsUnknown() {
+		params.Set("blockListUpdateIntervalHours", fmt.Sprintf("%d", model.BlockListUpdateIntervalHours.ValueInt64()))
+	}
+	if !model.CachePrefetchEligibility.IsNull() && !model.CachePrefetchEligibility.IsUnknown() {
+		params.Set("cachePrefetchEligibility", fmt.Sprintf("%d", model.CachePrefetchEligibility.ValueInt64()))
+	}
+	if !model.CachePrefetchTrigger.IsNull() && !model.CachePrefetchTrigger.IsUnknown() {
+		params.Set("cachePrefetchTrigger", fmt.Sprintf("%d", model.CachePrefetchTrigger.ValueInt64()))
+	}
+	if !model.CachePrefetchSampleIntervalMinutes.IsNull() && !model.CachePrefetchSampleIntervalMinutes.IsUnknown() {
+		params.Set("cachePrefetchSampleIntervalInMinutes", fmt.Sprintf("%d", model.CachePrefetchSampleIntervalMinutes.ValueInt64()))
+	}
+	if !model.CachePrefetchSampleEligibilityHitsPerHour.IsNull() && !model.CachePrefetchSampleEligibilityHitsPerHour.IsUnknown() {
+		params.Set("cachePrefetchSampleEligibilityHitsPerHour", fmt.Sprintf("%d", model.CachePrefetchSampleEligibilityHitsPerHour.ValueInt64()))
+	}
+	if !model.CacheFailureRecordTtl.IsNull() && !model.CacheFailureRecordTtl.IsUnknown() {
+		params.Set("cacheFailureRecordTtl", fmt.Sprintf("%d", model.CacheFailureRecordTtl.ValueInt64()))
+	}
+	if !model.SaveCache.IsNull() && !model.SaveCache.IsUnknown() {
+		params.Set("saveCache", fmt.Sprintf("%t", model.SaveCache.ValueBool()))
+	}
+	if !model.ServeStaleTtl.IsNull() && !model.ServeStaleTtl.IsUnknown() {
+		params.Set("serveStaleTtl", fmt.Sprintf("%d", model.ServeStaleTtl.ValueInt64()))
+	}
+	if !model.ServeStaleAnswerTtl.IsNull() && !model.ServeStaleAnswerTtl.IsUnknown() {
+		params.Set("serveStaleAnswerTtl", fmt.Sprintf("%d", model.ServeStaleAnswerTtl.ValueInt64()))
+	}
+	if !model.ServeStaleMaxWaitTime.IsNull() && !model.ServeStaleMaxWaitTime.IsUnknown() {
+		params.Set("serveStaleMaxWaitTime", fmt.Sprintf("%d", model.ServeStaleMaxWaitTime.ValueInt64()))
+	}
+	if !model.ServeStaleResetTtl.IsNull() && !model.ServeStaleResetTtl.IsUnknown() {
+		params.Set("serveStaleResetTtl", fmt.Sprintf("%d", model.ServeStaleResetTtl.ValueInt64()))
+	}
+	if !model.ForwarderRetries.IsNull() && !model.ForwarderRetries.IsUnknown() {
+		params.Set("forwarderRetries", fmt.Sprintf("%d", model.ForwarderRetries.ValueInt64()))
+	}
+	if !model.ForwarderTimeout.IsNull() && !model.ForwarderTimeout.IsUnknown() {
+		params.Set("forwarderTimeout", fmt.Sprintf("%d", model.ForwarderTimeout.ValueInt64()))
+	}
+	if !model.ForwarderConcurrency.IsNull() && !model.ForwarderConcurrency.IsUnknown() {
+		params.Set("forwarderConcurrency", fmt.Sprintf("%d", model.ForwarderConcurrency.ValueInt64()))
+	}
+	if !model.ConcurrentForwarding.IsNull() && !model.ConcurrentForwarding.IsUnknown() {
+		params.Set("concurrentForwarding", fmt.Sprintf("%t", model.ConcurrentForwarding.ValueBool()))
+	}
+	if !model.ResolverRetries.IsNull() && !model.ResolverRetries.IsUnknown() {
+		params.Set("resolverRetries", fmt.Sprintf("%d", model.ResolverRetries.ValueInt64()))
+	}
+	if !model.ResolverTimeout.IsNull() && !model.ResolverTimeout.IsUnknown() {
+		params.Set("resolverTimeout", fmt.Sprintf("%d", model.ResolverTimeout.ValueInt64()))
+	}
+	if !model.ResolverConcurrency.IsNull() && !model.ResolverConcurrency.IsUnknown() {
+		params.Set("resolverConcurrency", fmt.Sprintf("%d", model.ResolverConcurrency.ValueInt64()))
+	}
+	if !model.ResolverMaxStackCount.IsNull() && !model.ResolverMaxStackCount.IsUnknown() {
+		params.Set("resolverMaxStackCount", fmt.Sprintf("%d", model.ResolverMaxStackCount.ValueInt64()))
+	}
+	if !model.ClientTimeout.IsNull() && !model.ClientTimeout.IsUnknown() {
+		params.Set("clientTimeout", fmt.Sprintf("%d", model.ClientTimeout.ValueInt64()))
+	}
+	if !model.UdpPayloadSize.IsNull() && !model.UdpPayloadSize.IsUnknown() {
+		params.Set("udpPayloadSize", fmt.Sprintf("%d", model.UdpPayloadSize.ValueInt64()))
+	}
+	if !model.TcpReceiveTimeout.IsNull() && !model.TcpReceiveTimeout.IsUnknown() {
+		params.Set("tcpReceiveTimeout", fmt.Sprintf("%d", model.TcpReceiveTimeout.ValueInt64()))
+	}
+	if !model.TcpSendTimeout.IsNull() && !model.TcpSendTimeout.IsUnknown() {
+		params.Set("tcpSendTimeout", fmt.Sprintf("%d", model.TcpSendTimeout.ValueInt64()))
+	}
+	if !model.UdpReceiveBufferSizeKb.IsNull() && !model.UdpReceiveBufferSizeKb.IsUnknown() {
+		params.Set("udpReceiveBufferSizeKB", fmt.Sprintf("%d", model.UdpReceiveBufferSizeKb.ValueInt64()))
+	}
+	if !model.UdpSendBufferSizeKb.IsNull() && !model.UdpSendBufferSizeKb.IsUnknown() {
+		params.Set("udpSendBufferSizeKB", fmt.Sprintf("%d", model.UdpSendBufferSizeKb.ValueInt64()))
+	}
+	if !model.Ipv6Mode.IsNull() && !model.Ipv6Mode.IsUnknown() {
+		params.Set("ipv6Mode", model.Ipv6Mode.ValueString())
+	}
+	if !model.ListenBacklog.IsNull() && !model.ListenBacklog.IsUnknown() {
+		params.Set("listenBacklog", fmt.Sprintf("%d", model.ListenBacklog.ValueInt64()))
+	}
+	if !model.DefaultSoaRecordTtl.IsNull() && !model.DefaultSoaRecordTtl.IsUnknown() {
+		params.Set("defaultSoaRecordTtl", fmt.Sprintf("%d", model.DefaultSoaRecordTtl.ValueInt64()))
+	}
+	if !model.DefaultNsRecordTtl.IsNull() && !model.DefaultNsRecordTtl.IsUnknown() {
+		params.Set("defaultNsRecordTtl", fmt.Sprintf("%d", model.DefaultNsRecordTtl.ValueInt64()))
+	}
+	if !model.MinSoaRefresh.IsNull() && !model.MinSoaRefresh.IsUnknown() {
+		params.Set("minSoaRefresh", fmt.Sprintf("%d", model.MinSoaRefresh.ValueInt64()))
+	}
+	if !model.MinSoaRetry.IsNull() && !model.MinSoaRetry.IsUnknown() {
+		params.Set("minSoaRetry", fmt.Sprintf("%d", model.MinSoaRetry.ValueInt64()))
 	}
 
 	if !model.BlockListUrls.IsNull() && !model.BlockListUrls.IsUnknown() {
