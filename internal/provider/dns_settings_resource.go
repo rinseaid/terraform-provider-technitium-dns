@@ -16,7 +16,10 @@ import (
 	"github.com/rinseaid/terraform-provider-technitium-dns/internal/client"
 )
 
-var _ resource.Resource = &dnsSettingsResource{}
+var (
+	_ resource.Resource                = &dnsSettingsResource{}
+	_ resource.ResourceWithImportState = &dnsSettingsResource{}
+)
 
 func NewDNSSettingsResource() resource.Resource {
 	return &dnsSettingsResource{}
@@ -27,109 +30,109 @@ type dnsSettingsResource struct {
 }
 
 type dnsSettingsResourceModel struct {
-	ID                     types.String `tfsdk:"id"`
-	DnsServerDomain        types.String `tfsdk:"dns_server_domain"`
-	DefaultRecordTtl       types.Int64  `tfsdk:"default_record_ttl"`
-	PreferIPv6             types.Bool   `tfsdk:"prefer_ipv6"`
-	DnssecValidation       types.Bool   `tfsdk:"dnssec_validation"`
-	QnameMinimization      types.Bool   `tfsdk:"qname_minimization"`
-	RandomizeName          types.Bool   `tfsdk:"randomize_name"`
-	Recursion              types.String `tfsdk:"recursion"`
-	ServeStale             types.Bool   `tfsdk:"serve_stale"`
-	CacheMaximumEntries    types.Int64  `tfsdk:"cache_maximum_entries"`
-	CacheMinimumRecordTtl  types.Int64  `tfsdk:"cache_minimum_record_ttl"`
-	CacheMaximumRecordTtl  types.Int64  `tfsdk:"cache_maximum_record_ttl"`
-	CacheNegativeRecordTtl types.Int64  `tfsdk:"cache_negative_record_ttl"`
-	EnableBlocking         types.Bool   `tfsdk:"enable_blocking"`
-	BlockingType           types.String `tfsdk:"blocking_type"`
-	BlockListUrls          types.List   `tfsdk:"block_list_urls"`
-	Forwarders             types.List   `tfsdk:"forwarders"`
-	ForwarderProtocol      types.String `tfsdk:"forwarder_protocol"`
-	EnableLogging          types.Bool   `tfsdk:"enable_logging"`
-	LogQueries             types.Bool   `tfsdk:"log_queries"`
-	MaxLogFileDays         types.Int64  `tfsdk:"max_log_file_days"`
-	AllowTxtBlockingReport                   types.Bool   `tfsdk:"allow_txt_blocking_report"`
-	BlockingAnswerTtl                        types.Int64  `tfsdk:"blocking_answer_ttl"`
-	BlockListUpdateIntervalHours             types.Int64  `tfsdk:"block_list_update_interval_hours"`
-	CachePrefetchEligibility                 types.Int64  `tfsdk:"cache_prefetch_eligibility"`
-	CachePrefetchTrigger                     types.Int64  `tfsdk:"cache_prefetch_trigger"`
-	CachePrefetchSampleIntervalMinutes       types.Int64  `tfsdk:"cache_prefetch_sample_interval_minutes"`
-	CachePrefetchSampleEligibilityHitsPerHour types.Int64 `tfsdk:"cache_prefetch_sample_eligibility_hits_per_hour"`
-	CacheFailureRecordTtl                    types.Int64  `tfsdk:"cache_failure_record_ttl"`
-	SaveCache                                types.Bool   `tfsdk:"save_cache"`
-	ServeStaleTtl                            types.Int64  `tfsdk:"serve_stale_ttl"`
-	ServeStaleAnswerTtl                      types.Int64  `tfsdk:"serve_stale_answer_ttl"`
-	ServeStaleMaxWaitTime                    types.Int64  `tfsdk:"serve_stale_max_wait_time"`
-	ServeStaleResetTtl                       types.Int64  `tfsdk:"serve_stale_reset_ttl"`
-	ForwarderRetries                         types.Int64  `tfsdk:"forwarder_retries"`
-	ForwarderTimeout                         types.Int64  `tfsdk:"forwarder_timeout"`
-	ForwarderConcurrency                     types.Int64  `tfsdk:"forwarder_concurrency"`
-	ConcurrentForwarding                     types.Bool   `tfsdk:"concurrent_forwarding"`
-	ResolverRetries                          types.Int64  `tfsdk:"resolver_retries"`
-	ResolverTimeout                          types.Int64  `tfsdk:"resolver_timeout"`
-	ResolverConcurrency                      types.Int64  `tfsdk:"resolver_concurrency"`
-	ResolverMaxStackCount                    types.Int64  `tfsdk:"resolver_max_stack_count"`
-	ClientTimeout                            types.Int64  `tfsdk:"client_timeout"`
-	UdpPayloadSize                           types.Int64  `tfsdk:"udp_payload_size"`
-	TcpReceiveTimeout                        types.Int64  `tfsdk:"tcp_receive_timeout"`
-	TcpSendTimeout                           types.Int64  `tfsdk:"tcp_send_timeout"`
-	UdpReceiveBufferSizeKb                   types.Int64  `tfsdk:"udp_receive_buffer_size_kb"`
-	UdpSendBufferSizeKb                      types.Int64  `tfsdk:"udp_send_buffer_size_kb"`
-	Ipv6Mode                                 types.String `tfsdk:"ipv6_mode"`
-	ListenBacklog                            types.Int64  `tfsdk:"listen_backlog"`
-	DefaultSoaRecordTtl                      types.Int64  `tfsdk:"default_soa_record_ttl"`
-	DefaultNsRecordTtl                       types.Int64  `tfsdk:"default_ns_record_ttl"`
-	MinSoaRefresh                            types.Int64  `tfsdk:"min_soa_refresh"`
-	MinSoaRetry                              types.Int64  `tfsdk:"min_soa_retry"`
-	EnableDnsOverUdpProxy                    types.Bool   `tfsdk:"enable_dns_over_udp_proxy"`
-	EnableDnsOverTcpProxy                    types.Bool   `tfsdk:"enable_dns_over_tcp_proxy"`
-	EnableDnsOverHttp                        types.Bool   `tfsdk:"enable_dns_over_http"`
-	EnableDnsOverTls                         types.Bool   `tfsdk:"enable_dns_over_tls"`
-	EnableDnsOverHttps                       types.Bool   `tfsdk:"enable_dns_over_https"`
-	EnableDnsOverHttp3                       types.Bool   `tfsdk:"enable_dns_over_http3"`
-	EnableDnsOverQuic                        types.Bool   `tfsdk:"enable_dns_over_quic"`
-	DnsOverUdpProxyPort                      types.Int64  `tfsdk:"dns_over_udp_proxy_port"`
-	DnsOverTcpProxyPort                      types.Int64  `tfsdk:"dns_over_tcp_proxy_port"`
-	DnsOverHttpPort                          types.Int64  `tfsdk:"dns_over_http_port"`
-	DnsOverTlsPort                           types.Int64  `tfsdk:"dns_over_tls_port"`
-	DnsOverHttpsPort                         types.Int64  `tfsdk:"dns_over_https_port"`
-	DnsOverQuicPort                          types.Int64  `tfsdk:"dns_over_quic_port"`
-	DnsTlsCertificatePath                    types.String `tfsdk:"dns_tls_certificate_path"`
-	DnsTlsCertificatePassword                types.String `tfsdk:"dns_tls_certificate_password"`
-	WebServiceHttpPort                       types.Int64  `tfsdk:"web_service_http_port"`
-	WebServiceTlsPort                        types.Int64  `tfsdk:"web_service_tls_port"`
-	WebServiceEnableTls                      types.Bool   `tfsdk:"web_service_enable_tls"`
-	WebServiceEnableHttp3                    types.Bool   `tfsdk:"web_service_enable_http3"`
-	WebServiceHttpToTlsRedirect              types.Bool   `tfsdk:"web_service_http_to_tls_redirect"`
-	WebServiceUseSelfSignedTlsCertificate    types.Bool   `tfsdk:"web_service_use_self_signed_tls_certificate"`
-	WebServiceTlsCertificatePath             types.String `tfsdk:"web_service_tls_certificate_path"`
-	WebServiceTlsCertificatePassword         types.String `tfsdk:"web_service_tls_certificate_password"`
-	WebServiceRealIpHeader                   types.String `tfsdk:"web_service_real_ip_header"`
-	DnsOverHttpRealIpHeader                  types.String `tfsdk:"dns_over_http_real_ip_header"`
-	ServerProxyType                          types.String `tfsdk:"server_proxy_type"`
-	ServerProxyAddress                       types.String `tfsdk:"server_proxy_address"`
-	ServerProxyPort                          types.Int64  `tfsdk:"server_proxy_port"`
-	ServerProxyUsername                      types.String `tfsdk:"server_proxy_username"`
-	ServerProxyPassword                      types.String `tfsdk:"server_proxy_password"`
-	ServerProxyBypass                        types.String `tfsdk:"server_proxy_bypass"`
-	EdnsClientSubnet                         types.Bool   `tfsdk:"edns_client_subnet"`
-	EdnsClientSubnetIpv4PrefixLength         types.Int64  `tfsdk:"edns_client_subnet_ipv4_prefix_length"`
-	EdnsClientSubnetIpv6PrefixLength         types.Int64  `tfsdk:"edns_client_subnet_ipv6_prefix_length"`
-	EdnsClientSubnetIpv4Override             types.String `tfsdk:"edns_client_subnet_ipv4_override"`
-	EdnsClientSubnetIpv6Override             types.String `tfsdk:"edns_client_subnet_ipv6_override"`
-	DefaultResponsiblePerson                 types.String `tfsdk:"default_responsible_person"`
-	UseSoaSerialDateScheme                   types.Bool   `tfsdk:"use_soa_serial_date_scheme"`
-	DnsAppsEnableAutomaticUpdate             types.Bool   `tfsdk:"dns_apps_enable_automatic_update"`
-	EnableUdpSocketPool                      types.Bool   `tfsdk:"enable_udp_socket_pool"`
-	QuicIdleTimeout                          types.Int64  `tfsdk:"quic_idle_timeout"`
-	QuicMaxInboundStreams                    types.Int64  `tfsdk:"quic_max_inbound_streams"`
-	LoggingType                              types.String `tfsdk:"logging_type"`
-	IgnoreResolverLogs                       types.Bool   `tfsdk:"ignore_resolver_logs"`
-	UseLocalTime                             types.Bool   `tfsdk:"use_local_time"`
-	LogFolder                                types.String `tfsdk:"log_folder"`
-	EnableInMemoryStats                      types.Bool   `tfsdk:"enable_in_memory_stats"`
-	MaxStatFileDays                          types.Int64  `tfsdk:"max_stat_file_days"`
-	MaxConcurrentResolutionsPerCore          types.Int64  `tfsdk:"max_concurrent_resolutions_per_core"`
+	ID                                        types.String `tfsdk:"id"`
+	DnsServerDomain                           types.String `tfsdk:"dns_server_domain"`
+	DefaultRecordTtl                          types.Int64  `tfsdk:"default_record_ttl"`
+	PreferIPv6                                types.Bool   `tfsdk:"prefer_ipv6"`
+	DnssecValidation                          types.Bool   `tfsdk:"dnssec_validation"`
+	QnameMinimization                         types.Bool   `tfsdk:"qname_minimization"`
+	RandomizeName                             types.Bool   `tfsdk:"randomize_name"`
+	Recursion                                 types.String `tfsdk:"recursion"`
+	ServeStale                                types.Bool   `tfsdk:"serve_stale"`
+	CacheMaximumEntries                       types.Int64  `tfsdk:"cache_maximum_entries"`
+	CacheMinimumRecordTtl                     types.Int64  `tfsdk:"cache_minimum_record_ttl"`
+	CacheMaximumRecordTtl                     types.Int64  `tfsdk:"cache_maximum_record_ttl"`
+	CacheNegativeRecordTtl                    types.Int64  `tfsdk:"cache_negative_record_ttl"`
+	EnableBlocking                            types.Bool   `tfsdk:"enable_blocking"`
+	BlockingType                              types.String `tfsdk:"blocking_type"`
+	BlockListUrls                             types.List   `tfsdk:"block_list_urls"`
+	Forwarders                                types.List   `tfsdk:"forwarders"`
+	ForwarderProtocol                         types.String `tfsdk:"forwarder_protocol"`
+	EnableLogging                             types.Bool   `tfsdk:"enable_logging"`
+	LogQueries                                types.Bool   `tfsdk:"log_queries"`
+	MaxLogFileDays                            types.Int64  `tfsdk:"max_log_file_days"`
+	AllowTxtBlockingReport                    types.Bool   `tfsdk:"allow_txt_blocking_report"`
+	BlockingAnswerTtl                         types.Int64  `tfsdk:"blocking_answer_ttl"`
+	BlockListUpdateIntervalHours              types.Int64  `tfsdk:"block_list_update_interval_hours"`
+	CachePrefetchEligibility                  types.Int64  `tfsdk:"cache_prefetch_eligibility"`
+	CachePrefetchTrigger                      types.Int64  `tfsdk:"cache_prefetch_trigger"`
+	CachePrefetchSampleIntervalMinutes        types.Int64  `tfsdk:"cache_prefetch_sample_interval_minutes"`
+	CachePrefetchSampleEligibilityHitsPerHour types.Int64  `tfsdk:"cache_prefetch_sample_eligibility_hits_per_hour"`
+	CacheFailureRecordTtl                     types.Int64  `tfsdk:"cache_failure_record_ttl"`
+	SaveCache                                 types.Bool   `tfsdk:"save_cache"`
+	ServeStaleTtl                             types.Int64  `tfsdk:"serve_stale_ttl"`
+	ServeStaleAnswerTtl                       types.Int64  `tfsdk:"serve_stale_answer_ttl"`
+	ServeStaleMaxWaitTime                     types.Int64  `tfsdk:"serve_stale_max_wait_time"`
+	ServeStaleResetTtl                        types.Int64  `tfsdk:"serve_stale_reset_ttl"`
+	ForwarderRetries                          types.Int64  `tfsdk:"forwarder_retries"`
+	ForwarderTimeout                          types.Int64  `tfsdk:"forwarder_timeout"`
+	ForwarderConcurrency                      types.Int64  `tfsdk:"forwarder_concurrency"`
+	ConcurrentForwarding                      types.Bool   `tfsdk:"concurrent_forwarding"`
+	ResolverRetries                           types.Int64  `tfsdk:"resolver_retries"`
+	ResolverTimeout                           types.Int64  `tfsdk:"resolver_timeout"`
+	ResolverConcurrency                       types.Int64  `tfsdk:"resolver_concurrency"`
+	ResolverMaxStackCount                     types.Int64  `tfsdk:"resolver_max_stack_count"`
+	ClientTimeout                             types.Int64  `tfsdk:"client_timeout"`
+	UdpPayloadSize                            types.Int64  `tfsdk:"udp_payload_size"`
+	TcpReceiveTimeout                         types.Int64  `tfsdk:"tcp_receive_timeout"`
+	TcpSendTimeout                            types.Int64  `tfsdk:"tcp_send_timeout"`
+	UdpReceiveBufferSizeKb                    types.Int64  `tfsdk:"udp_receive_buffer_size_kb"`
+	UdpSendBufferSizeKb                       types.Int64  `tfsdk:"udp_send_buffer_size_kb"`
+	Ipv6Mode                                  types.String `tfsdk:"ipv6_mode"`
+	ListenBacklog                             types.Int64  `tfsdk:"listen_backlog"`
+	DefaultSoaRecordTtl                       types.Int64  `tfsdk:"default_soa_record_ttl"`
+	DefaultNsRecordTtl                        types.Int64  `tfsdk:"default_ns_record_ttl"`
+	MinSoaRefresh                             types.Int64  `tfsdk:"min_soa_refresh"`
+	MinSoaRetry                               types.Int64  `tfsdk:"min_soa_retry"`
+	EnableDnsOverUdpProxy                     types.Bool   `tfsdk:"enable_dns_over_udp_proxy"`
+	EnableDnsOverTcpProxy                     types.Bool   `tfsdk:"enable_dns_over_tcp_proxy"`
+	EnableDnsOverHttp                         types.Bool   `tfsdk:"enable_dns_over_http"`
+	EnableDnsOverTls                          types.Bool   `tfsdk:"enable_dns_over_tls"`
+	EnableDnsOverHttps                        types.Bool   `tfsdk:"enable_dns_over_https"`
+	EnableDnsOverHttp3                        types.Bool   `tfsdk:"enable_dns_over_http3"`
+	EnableDnsOverQuic                         types.Bool   `tfsdk:"enable_dns_over_quic"`
+	DnsOverUdpProxyPort                       types.Int64  `tfsdk:"dns_over_udp_proxy_port"`
+	DnsOverTcpProxyPort                       types.Int64  `tfsdk:"dns_over_tcp_proxy_port"`
+	DnsOverHttpPort                           types.Int64  `tfsdk:"dns_over_http_port"`
+	DnsOverTlsPort                            types.Int64  `tfsdk:"dns_over_tls_port"`
+	DnsOverHttpsPort                          types.Int64  `tfsdk:"dns_over_https_port"`
+	DnsOverQuicPort                           types.Int64  `tfsdk:"dns_over_quic_port"`
+	DnsTlsCertificatePath                     types.String `tfsdk:"dns_tls_certificate_path"`
+	DnsTlsCertificatePassword                 types.String `tfsdk:"dns_tls_certificate_password"`
+	WebServiceHttpPort                        types.Int64  `tfsdk:"web_service_http_port"`
+	WebServiceTlsPort                         types.Int64  `tfsdk:"web_service_tls_port"`
+	WebServiceEnableTls                       types.Bool   `tfsdk:"web_service_enable_tls"`
+	WebServiceEnableHttp3                     types.Bool   `tfsdk:"web_service_enable_http3"`
+	WebServiceHttpToTlsRedirect               types.Bool   `tfsdk:"web_service_http_to_tls_redirect"`
+	WebServiceUseSelfSignedTlsCertificate     types.Bool   `tfsdk:"web_service_use_self_signed_tls_certificate"`
+	WebServiceTlsCertificatePath              types.String `tfsdk:"web_service_tls_certificate_path"`
+	WebServiceTlsCertificatePassword          types.String `tfsdk:"web_service_tls_certificate_password"`
+	WebServiceRealIpHeader                    types.String `tfsdk:"web_service_real_ip_header"`
+	DnsOverHttpRealIpHeader                   types.String `tfsdk:"dns_over_http_real_ip_header"`
+	ServerProxyType                           types.String `tfsdk:"server_proxy_type"`
+	ServerProxyAddress                        types.String `tfsdk:"server_proxy_address"`
+	ServerProxyPort                           types.Int64  `tfsdk:"server_proxy_port"`
+	ServerProxyUsername                       types.String `tfsdk:"server_proxy_username"`
+	ServerProxyPassword                       types.String `tfsdk:"server_proxy_password"`
+	ServerProxyBypass                         types.String `tfsdk:"server_proxy_bypass"`
+	EdnsClientSubnet                          types.Bool   `tfsdk:"edns_client_subnet"`
+	EdnsClientSubnetIpv4PrefixLength          types.Int64  `tfsdk:"edns_client_subnet_ipv4_prefix_length"`
+	EdnsClientSubnetIpv6PrefixLength          types.Int64  `tfsdk:"edns_client_subnet_ipv6_prefix_length"`
+	EdnsClientSubnetIpv4Override              types.String `tfsdk:"edns_client_subnet_ipv4_override"`
+	EdnsClientSubnetIpv6Override              types.String `tfsdk:"edns_client_subnet_ipv6_override"`
+	DefaultResponsiblePerson                  types.String `tfsdk:"default_responsible_person"`
+	UseSoaSerialDateScheme                    types.Bool   `tfsdk:"use_soa_serial_date_scheme"`
+	DnsAppsEnableAutomaticUpdate              types.Bool   `tfsdk:"dns_apps_enable_automatic_update"`
+	EnableUdpSocketPool                       types.Bool   `tfsdk:"enable_udp_socket_pool"`
+	QuicIdleTimeout                           types.Int64  `tfsdk:"quic_idle_timeout"`
+	QuicMaxInboundStreams                     types.Int64  `tfsdk:"quic_max_inbound_streams"`
+	LoggingType                               types.String `tfsdk:"logging_type"`
+	IgnoreResolverLogs                        types.Bool   `tfsdk:"ignore_resolver_logs"`
+	UseLocalTime                              types.Bool   `tfsdk:"use_local_time"`
+	LogFolder                                 types.String `tfsdk:"log_folder"`
+	EnableInMemoryStats                       types.Bool   `tfsdk:"enable_in_memory_stats"`
+	MaxStatFileDays                           types.Int64  `tfsdk:"max_stat_file_days"`
+	MaxConcurrentResolutionsPerCore           types.Int64  `tfsdk:"max_concurrent_resolutions_per_core"`
 }
 
 func (r *dnsSettingsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -782,6 +785,18 @@ func (r *dnsSettingsResource) Delete(_ context.Context, _ resource.DeleteRequest
 	// DNS settings cannot be deleted. Removing from state only.
 }
 
+func (r *dnsSettingsResource) ImportState(ctx context.Context, _ resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	var model dnsSettingsResourceModel
+
+	diags := r.readIntoModel(ctx, &model)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
+
 func (r *dnsSettingsResource) readIntoModel(ctx context.Context, model *dnsSettingsResourceModel) (diags diag.Diagnostics) {
 	tflog.Debug(ctx, "Reading DNS settings")
 
@@ -792,6 +807,7 @@ func (r *dnsSettingsResource) readIntoModel(ctx context.Context, model *dnsSetti
 	}
 
 	model.ID = types.StringValue("settings")
+	nullifyUnknowns(model)
 
 	if v, ok := response["dnsServerDomain"].(string); ok {
 		model.DnsServerDomain = types.StringValue(v)

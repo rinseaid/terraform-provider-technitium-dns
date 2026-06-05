@@ -227,6 +227,61 @@ resource "technitium_blocked_zone" "ads" {
 }
 ```
 
+### technitium_dns_app_config
+
+Manages configuration for a DNS application installed on the Technitium server.
+
+```hcl
+resource "technitium_dns_app_config" "blocker" {
+  app_name = "Advanced Blocking"
+  config   = jsonencode({ "enableBlocking" = true })
+}
+```
+
+### technitium_admin_user
+
+Manages an admin user account.
+
+```hcl
+resource "technitium_admin_user" "ops" {
+  username = "ops-admin"
+  password = "secure-password"
+}
+```
+
+### technitium_admin_group
+
+Manages an admin group.
+
+```hcl
+resource "technitium_admin_group" "operators" {
+  name = "operators"
+}
+```
+
+### technitium_admin_permission
+
+Manages permissions for an admin group.
+
+```hcl
+resource "technitium_admin_permission" "operators_zones" {
+  group   = technitium_admin_group.operators.name
+  section = "Zones"
+  access  = "Allow"
+}
+```
+
+### technitium_zone_dnssec
+
+Manages DNSSEC signing for a zone.
+
+```hcl
+resource "technitium_zone_dnssec" "example" {
+  zone      = technitium_dns_zone.example.name
+  algorithm = "ECDSA"
+}
+```
+
 ## Data Sources
 
 | Data Source                    | Description                          |
@@ -238,6 +293,7 @@ resource "technitium_blocked_zone" "ads" {
 | `technitium_dhcp_leases`      | List leases for a scope              |
 | `technitium_allowed_zones`    | List allowed zone entries            |
 | `technitium_blocked_zones`    | List blocked zone entries            |
+| `technitium_dns_apps`         | List installed DNS applications      |
 
 ```hcl
 data "technitium_dns_zones" "all" {}

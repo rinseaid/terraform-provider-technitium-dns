@@ -100,10 +100,14 @@ func (r *blockedZoneResource) Read(ctx context.Context, req resource.ReadRequest
 
 	domain := state.Domain.ValueString()
 
-	// List the zone to verify it exists. The API returns records for the
-	// domain when queried directly. An error indicates the zone is absent.
-	_, err := r.client.ListBlockedZones(domain)
+	result, err := r.client.ListBlockedZones(domain)
 	if err != nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	records, _ := result["records"].([]interface{})
+	if len(records) == 0 {
 		resp.State.RemoveResource(ctx)
 		return
 	}

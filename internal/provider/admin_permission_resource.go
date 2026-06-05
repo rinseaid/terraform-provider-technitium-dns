@@ -70,11 +70,13 @@ func (r *adminPermissionResource) Schema(_ context.Context, _ resource.SchemaReq
 				Description: "Pipe-delimited user permissions: username|canView|canModify|canDelete. " +
 					"Multiple entries separated by pipes.",
 				Optional: true,
+				Computed: true,
 			},
 			"group_permissions": schema.StringAttribute{
 				Description: "Pipe-delimited group permissions: name|canView|canModify|canDelete. " +
-					"Multiple entries separated by pipes.",
+					"Multiple entries separated by pipes. Includes server defaults.",
 				Optional: true,
+				Computed: true,
 			},
 		},
 	}
@@ -248,7 +250,11 @@ func (r *adminPermissionResource) populateModelFromResponse(resp map[string]inte
 		}
 		if len(parts) > 0 {
 			model.UserPermissions = types.StringValue(strings.Join(parts, "|"))
+		} else if !model.UserPermissions.IsNull() {
+			model.UserPermissions = types.StringNull()
 		}
+	} else if !model.UserPermissions.IsNull() {
+		model.UserPermissions = types.StringNull()
 	}
 
 	if groupPerms, ok := resp["groupPermissions"].([]interface{}); ok && len(groupPerms) > 0 {
@@ -266,7 +272,11 @@ func (r *adminPermissionResource) populateModelFromResponse(resp map[string]inte
 		}
 		if len(parts) > 0 {
 			model.GroupPermissions = types.StringValue(strings.Join(parts, "|"))
+		} else if !model.GroupPermissions.IsNull() {
+			model.GroupPermissions = types.StringNull()
 		}
+	} else if !model.GroupPermissions.IsNull() {
+		model.GroupPermissions = types.StringNull()
 	}
 }
 

@@ -24,6 +24,11 @@ Terraform/OpenTofu provider for Technitium DNS Server.
 - technitium_dhcp_reserved_lease
 - technitium_allowed_zone
 - technitium_blocked_zone
+- technitium_dns_app_config
+- technitium_admin_user
+- technitium_admin_group
+- technitium_admin_permission
+- technitium_zone_dnssec
 
 ## Data Sources
 
@@ -34,6 +39,7 @@ Terraform/OpenTofu provider for Technitium DNS Server.
 - technitium_dhcp_leases
 - technitium_allowed_zones
 - technitium_blocked_zones
+- technitium_dns_apps
 
 ## Resource Pattern
 

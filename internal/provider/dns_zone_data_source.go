@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -134,4 +135,38 @@ func boolFromMap(m map[string]interface{}, key string) bool {
 		return v
 	}
 	return false
+}
+
+// nullifyUnknowns walks a model struct via reflection and converts any Unknown
+// Terraform attribute values to Null. This prevents "unknown value after apply"
+// errors for Optional+Computed attributes that the API doesn't return.
+func nullifyUnknowns(model interface{}) {
+	v := reflect.ValueOf(model).Elem()
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if !field.CanInterface() {
+			continue
+		}
+		switch fv := field.Interface().(type) {
+		case types.String:
+			if fv.IsUnknown() {
+				field.Set(reflect.ValueOf(types.StringNull()))
+			}
+		case types.Int64:
+			if fv.IsUnknown() {
+				field.Set(reflect.ValueOf(types.Int64Null()))
+			}
+		case types.Bool:
+			if fv.IsUnknown() {
+				field.Set(reflect.ValueOf(types.BoolNull()))
+			}
+		case types.List:
+			if fv.IsUnknown() {
+				elemType := t.Field(i).Type
+				_ = elemType
+				field.Set(reflect.ValueOf(types.ListNull(types.StringType)))
+			}
+		}
+	}
 }

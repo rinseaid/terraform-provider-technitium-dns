@@ -66,7 +66,7 @@ func (r *dnsZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"type": schema.StringAttribute{
-				Description: "The type of zone. Valid values: Primary, Secondary, Stub, Forwarder, SecondaryForwarder, Catalog.",
+				Description: "The type of zone. Valid values: Primary, Secondary, Stub, Forwarder, SecondaryForwarder, Catalog, SecondaryCatalog.",
 				Required:    true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(

@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	_ resource.Resource                   = &dhcpReservedLeaseResource{}
-	_ resource.ResourceWithImportState    = &dhcpReservedLeaseResource{}
-	_ resource.ResourceWithUpgradeState   = &dhcpReservedLeaseResource{}
+	_ resource.Resource                 = &dhcpReservedLeaseResource{}
+	_ resource.ResourceWithImportState  = &dhcpReservedLeaseResource{}
+	_ resource.ResourceWithUpgradeState = &dhcpReservedLeaseResource{}
 )
 
 func NewDHCPReservedLeaseResource() resource.Resource {
@@ -36,8 +36,8 @@ type dhcpReservedLeaseResourceModel struct {
 	ScopeName       types.String    `tfsdk:"scope_name"`
 	HardwareAddress macAddressValue `tfsdk:"hardware_address"`
 	Address         types.String    `tfsdk:"address"`
-	Hostname        types.String `tfsdk:"hostname"`
-	Comments        types.String `tfsdk:"comments"`
+	Hostname        types.String    `tfsdk:"hostname"`
+	Comments        types.String    `tfsdk:"comments"`
 }
 
 func (r *dhcpReservedLeaseResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -146,9 +146,15 @@ func (r *dhcpReservedLeaseResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 
-	diags = r.readIntoModel(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
+	readDiags := r.readIntoModel(ctx, &state)
+	if readDiags.HasError() {
+		for _, d := range readDiags {
+			if d.Summary() == "Error Reading DHCP Reserved Lease" {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+		}
+		resp.Diagnostics.Append(readDiags...)
 		return
 	}
 
@@ -332,19 +338,34 @@ func (r *dhcpReservedLeaseResource) readIntoModel(_ context.Context, model *dhcp
 
 	var found bool
 	for _, entry := range reservedLeases {
-		lease := entry.(map[string]interface{})
-		leaseMAC := normalizeMAC(lease["hardwareAddress"].(string))
+		lease, ok := entry.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		hwAddr, ok := lease["hardwareAddress"].(string)
+		if !ok {
+			continue
+		}
+		leaseMAC := normalizeMAC(hwAddr)
 		if leaseMAC == mac {
-			model.Address = types.StringValue(lease["address"].(string))
+			addr, ok := lease["address"].(string)
+			if !ok {
+				diags.AddError(
+					"Error Reading DHCP Reserved Lease",
+					fmt.Sprintf("Unexpected address type in reserved lease for MAC %q in scope %q", mac, scopeName),
+				)
+				return
+			}
+			model.Address = types.StringValue(addr)
 
-			if v, ok := lease["hostName"]; ok && v != nil && v != "" {
-				model.Hostname = types.StringValue(v.(string))
+			if v, ok := lease["hostName"].(string); ok && v != "" {
+				model.Hostname = types.StringValue(v)
 			} else if !model.Hostname.IsNull() {
 				model.Hostname = types.StringNull()
 			}
 
-			if v, ok := lease["comments"]; ok && v != nil && v != "" {
-				model.Comments = types.StringValue(v.(string))
+			if v, ok := lease["comments"].(string); ok && v != "" {
+				model.Comments = types.StringValue(v)
 			} else if !model.Comments.IsNull() {
 				model.Comments = types.StringNull()
 			}
@@ -378,4 +399,3 @@ func normalizeMAC(mac string) string {
 	mac = strings.ReplaceAll(mac, ".", ":")
 	return mac
 }
-

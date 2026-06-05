@@ -432,22 +432,35 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 		return
 	}
 
-	model.Name = types.StringValue(scopeData["name"].(string))
-	model.StartAddress = types.StringValue(scopeData["startingAddress"].(string))
-	model.EndAddress = types.StringValue(scopeData["endingAddress"].(string))
-	model.SubnetMask = types.StringValue(scopeData["subnetMask"].(string))
+	if v, ok := scopeData["name"].(string); ok {
+		model.Name = types.StringValue(v)
+	}
+	if v, ok := scopeData["startingAddress"].(string); ok {
+		model.StartAddress = types.StringValue(v)
+	}
+	if v, ok := scopeData["endingAddress"].(string); ok {
+		model.EndAddress = types.StringValue(v)
+	}
+	if v, ok := scopeData["subnetMask"].(string); ok {
+		model.SubnetMask = types.StringValue(v)
+	}
 
-	if v, ok := scopeData["routerAddress"]; ok && v != nil && v != "" {
-		model.RouterAddress = types.StringValue(v.(string))
+	if v, ok := scopeData["routerAddress"].(string); ok && v != "" {
+		model.RouterAddress = types.StringValue(v)
 	} else if !model.RouterAddress.IsNull() {
 		model.RouterAddress = types.StringNull()
 	}
 
 	if v, ok := scopeData["dnsServers"]; ok && v != nil {
-		servers := v.([]interface{})
-		serverStrings := make([]string, len(servers))
-		for i, s := range servers {
-			serverStrings[i] = s.(string)
+		servers, ok := v.([]interface{})
+		if !ok {
+			servers = nil
+		}
+		serverStrings := make([]string, 0, len(servers))
+		for _, s := range servers {
+			if str, ok := s.(string); ok {
+				serverStrings = append(serverStrings, str)
+			}
 		}
 		listVal, d := types.ListValueFrom(ctx, types.StringType, serverStrings)
 		diags.Append(d...)
@@ -456,50 +469,52 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 		model.DNSServers = types.ListNull(types.StringType)
 	}
 
-	if v, ok := scopeData["domainName"]; ok && v != nil && v != "" {
-		model.DomainName = types.StringValue(v.(string))
+	if v, ok := scopeData["domainName"].(string); ok && v != "" {
+		model.DomainName = types.StringValue(v)
 	} else if !model.DomainName.IsNull() {
 		model.DomainName = types.StringNull()
 	}
 
 	// Convert days/hours/minutes back to total seconds
 	var totalSeconds int64
-	if v, ok := scopeData["leaseTimeDays"]; ok && v != nil {
-		totalSeconds += int64(v.(float64)) * 86400
+	if v, ok := scopeData["leaseTimeDays"].(float64); ok {
+		totalSeconds += int64(v) * 86400
 	}
-	if v, ok := scopeData["leaseTimeHours"]; ok && v != nil {
-		totalSeconds += int64(v.(float64)) * 3600
+	if v, ok := scopeData["leaseTimeHours"].(float64); ok {
+		totalSeconds += int64(v) * 3600
 	}
-	if v, ok := scopeData["leaseTimeMinutes"]; ok && v != nil {
-		totalSeconds += int64(v.(float64)) * 60
+	if v, ok := scopeData["leaseTimeMinutes"].(float64); ok {
+		totalSeconds += int64(v) * 60
 	}
 	model.LeaseTime = types.Int64Value(totalSeconds)
 
-	if v, ok := scopeData["offerDelayTime"]; ok && v != nil {
-		model.OfferDelay = types.Int64Value(int64(v.(float64)))
+	if v, ok := scopeData["offerDelayTime"].(float64); ok {
+		model.OfferDelay = types.Int64Value(int64(v))
 	}
 
-	if v, ok := scopeData["pingCheckEnabled"]; ok && v != nil {
-		model.PingCheck = types.BoolValue(v.(bool))
+	if v, ok := scopeData["pingCheckEnabled"].(bool); ok {
+		model.PingCheck = types.BoolValue(v)
 	}
 
-	if v, ok := scopeData["pingCheckTimeout"]; ok && v != nil {
-		model.PingCheckTimeout = types.Int64Value(int64(v.(float64)))
+	if v, ok := scopeData["pingCheckTimeout"].(float64); ok {
+		model.PingCheckTimeout = types.Int64Value(int64(v))
 	} else if !model.PingCheckTimeout.IsNull() {
 		model.PingCheckTimeout = types.Int64Null()
 	}
 
-	if v, ok := scopeData["pingCheckRetries"]; ok && v != nil {
-		model.PingCheckRetries = types.Int64Value(int64(v.(float64)))
+	if v, ok := scopeData["pingCheckRetries"].(float64); ok {
+		model.PingCheckRetries = types.Int64Value(int64(v))
 	} else if !model.PingCheckRetries.IsNull() {
 		model.PingCheckRetries = types.Int64Null()
 	}
 
 	if v, ok := scopeData["domainSearchList"]; ok && v != nil {
-		items := v.([]interface{})
-		strs := make([]string, len(items))
-		for i, s := range items {
-			strs[i] = s.(string)
+		items, _ := v.([]interface{})
+		strs := make([]string, 0, len(items))
+		for _, s := range items {
+			if str, ok := s.(string); ok {
+				strs = append(strs, str)
+			}
 		}
 		listVal, d := types.ListValueFrom(ctx, types.StringType, strs)
 		diags.Append(d...)
@@ -508,29 +523,31 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 		model.DomainSearchList = types.ListNull(types.StringType)
 	}
 
-	if v, ok := scopeData["dnsUpdates"]; ok && v != nil {
-		model.DNSUpdates = types.BoolValue(v.(bool))
+	if v, ok := scopeData["dnsUpdates"].(bool); ok {
+		model.DNSUpdates = types.BoolValue(v)
 	} else if !model.DNSUpdates.IsNull() {
 		model.DNSUpdates = types.BoolNull()
 	}
 
-	if v, ok := scopeData["dnsTtl"]; ok && v != nil {
-		model.DNSTTL = types.Int64Value(int64(v.(float64)))
+	if v, ok := scopeData["dnsTtl"].(float64); ok {
+		model.DNSTTL = types.Int64Value(int64(v))
 	} else if !model.DNSTTL.IsNull() {
 		model.DNSTTL = types.Int64Null()
 	}
 
-	if v, ok := scopeData["bootFileName"]; ok && v != nil && v != "" {
-		model.BootFileName = types.StringValue(v.(string))
+	if v, ok := scopeData["bootFileName"].(string); ok && v != "" {
+		model.BootFileName = types.StringValue(v)
 	} else if !model.BootFileName.IsNull() {
 		model.BootFileName = types.StringNull()
 	}
 
 	if v, ok := scopeData["tftpServerAddresses"]; ok && v != nil {
-		items := v.([]interface{})
-		strs := make([]string, len(items))
-		for i, s := range items {
-			strs[i] = s.(string)
+		items, _ := v.([]interface{})
+		strs := make([]string, 0, len(items))
+		for _, s := range items {
+			if str, ok := s.(string); ok {
+				strs = append(strs, str)
+			}
 		}
 		listVal, d := types.ListValueFrom(ctx, types.StringType, strs)
 		diags.Append(d...)
@@ -566,10 +583,12 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 	}
 
 	if v, ok := scopeData["ntpServers"]; ok && v != nil {
-		items := v.([]interface{})
-		strs := make([]string, len(items))
-		for i, s := range items {
-			strs[i] = s.(string)
+		items, _ := v.([]interface{})
+		strs := make([]string, 0, len(items))
+		for _, s := range items {
+			if str, ok := s.(string); ok {
+				strs = append(strs, str)
+			}
 		}
 		listVal, d := types.ListValueFrom(ctx, types.StringType, strs)
 		diags.Append(d...)
@@ -631,8 +650,8 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 		model.VendorInfo = types.StringNull()
 	}
 
-	if v, ok := scopeData["ignoreClientIdentifierOption"]; ok && v != nil {
-		model.IgnoreClientIdentifierOption = types.BoolValue(v.(bool))
+	if v, ok := scopeData["ignoreClientIdentifierOption"].(bool); ok {
+		model.IgnoreClientIdentifierOption = types.BoolValue(v)
 	} else if !model.IgnoreClientIdentifierOption.IsNull() {
 		model.IgnoreClientIdentifierOption = types.BoolNull()
 	}
@@ -650,8 +669,15 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 	model.Enabled = types.BoolValue(false)
 	if scopeList, ok := scopes["scopes"].([]interface{}); ok {
 		for _, s := range scopeList {
-			scopeMap := s.(map[string]interface{})
-			if scopeMap["name"].(string) == model.Name.ValueString() {
+			scopeMap, ok := s.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			scopeName, ok := scopeMap["name"].(string)
+			if !ok {
+				continue
+			}
+			if scopeName == model.Name.ValueString() {
 				if enabled, ok := scopeMap["enabled"].(bool); ok {
 					model.Enabled = types.BoolValue(enabled)
 				}

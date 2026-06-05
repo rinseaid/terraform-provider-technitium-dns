@@ -1,4 +1,5 @@
 terraform-provider-technitium
+terraform-provider-technitium-dns
 *.out
 *.html
 dist/

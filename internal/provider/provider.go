@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -24,6 +25,7 @@ type TechnitiumProviderModel struct {
 	Username  types.String `tfsdk:"username"`
 	Password  types.String `tfsdk:"password"`
 	APIToken  types.String `tfsdk:"api_token"`
+	Timeout   types.Int64  `tfsdk:"timeout"`
 }
 
 func New(version string) func() provider.Provider {
@@ -68,6 +70,10 @@ func (p *TechnitiumProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 					"Alternative to username/password authentication.",
 				Optional:  true,
 				Sensitive: true,
+			},
+			"timeout": schema.Int64Attribute{
+				Description: "HTTP request timeout in seconds. Defaults to 30.",
+				Optional:    true,
 			},
 		},
 	}
@@ -132,14 +138,20 @@ func (p *TechnitiumProvider) Configure(ctx context.Context, req provider.Configu
 		return
 	}
 
+	// Resolve timeout.
+	var timeout time.Duration
+	if !config.Timeout.IsNull() && !config.Timeout.IsUnknown() {
+		timeout = time.Duration(config.Timeout.ValueInt64()) * time.Second
+	}
+
 	// Create the API client.
 	var c *client.Client
 	var err error
 
 	if apiToken != "" {
-		c, err = client.NewWithToken(serverURL, apiToken)
+		c, err = client.NewWithToken(serverURL, apiToken, timeout)
 	} else {
-		c, err = client.NewWithCredentials(serverURL, username, password)
+		c, err = client.NewWithCredentials(serverURL, username, password, timeout)
 	}
 
 	if err != nil {

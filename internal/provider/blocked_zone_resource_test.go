@@ -91,7 +91,7 @@ func testAccCheckBlockedZoneDestroy(domain string) resource.TestCheckFunc {
 
 		result, err := c.ListBlockedZones("")
 		if err != nil {
-			return nil
+			return fmt.Errorf("error checking blocked zone destroy: %s", err)
 		}
 
 		if zoneList, ok := result["zones"].([]interface{}); ok {

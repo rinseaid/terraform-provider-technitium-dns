@@ -1,14 +1,37 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
+
+func testAccCheckCatalogZoneMembershipDestroy(zoneName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		c, err := testAccClientFromEnv()
+		if err != nil {
+			return fmt.Errorf("creating client for destroy check: %s", err)
+		}
+
+		opts, err := c.GetZoneOptions(zoneName)
+		if err != nil {
+			return nil
+		}
+
+		if catalog, ok := opts["catalog"].(string); ok && catalog != "" {
+			return fmt.Errorf("zone %q still has catalog membership %q after destroy", zoneName, catalog)
+		}
+
+		return nil
+	}
+}
 
 func TestAccCatalogZoneMembershipResource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckCatalogZoneMembershipDestroy("test-member.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCatalogZoneMembershipConfig(),
@@ -24,6 +47,7 @@ func TestAccCatalogZoneMembershipResource_basic(t *testing.T) {
 func TestAccCatalogZoneMembershipResource_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckCatalogZoneMembershipDestroy("test-member-upd.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -88,6 +112,7 @@ resource "technitium_catalog_zone_membership" "test" {
 func TestAccCatalogZoneMembershipResource_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckCatalogZoneMembershipDestroy("test-member.example"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCatalogZoneMembershipConfig(),

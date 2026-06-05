@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -329,9 +330,31 @@ func (r *zoneDnssecResource) buildSignParams(model *zoneDnssecResourceModel) url
 	return params
 }
 
+// dnssecAlgoToProvider maps the API's combined algorithm string back to
+// the provider's separate algorithm + hash/curve fields.
+func dnssecAlgoToProvider(apiAlgo string) (algorithm, hashAlgorithm, curve string) {
+	switch apiAlgo {
+	case "RSASHA1":
+		return "RSA", "SHA1", ""
+	case "RSASHA256":
+		return "RSA", "SHA256", ""
+	case "RSASHA512":
+		return "RSA", "SHA512", ""
+	case "ECDSAP256SHA256":
+		return "ECDSA", "", "P256"
+	case "ECDSAP384SHA384":
+		return "ECDSA", "", "P384"
+	case "ED25519":
+		return "EDDSA", "", "ED25519"
+	case "ED448":
+		return "EDDSA", "", "ED448"
+	default:
+		return apiAlgo, "", ""
+	}
+}
+
 // readDnssecIntoModel reads DNSSEC properties and zone options into the model.
 func (r *zoneDnssecResource) readDnssecIntoModel(_ context.Context, zone string, model *zoneDnssecResourceModel, diags *diag.Diagnostics) {
-	// Get DNSSEC properties.
 	props, err := r.client.GetDNSSECProperties(zone)
 	if err != nil {
 		diags.AddError(
@@ -341,57 +364,67 @@ func (r *zoneDnssecResource) readDnssecIntoModel(_ context.Context, zone string,
 		return
 	}
 
-	if algo, ok := props["algorithm"].(string); ok {
-		model.Algorithm = types.StringValue(algo)
-	}
-
-	if hashAlgo, ok := props["hashName"].(string); ok && hashAlgo != "" {
-		model.HashAlgorithm = types.StringValue(hashAlgo)
-	}
-
-	if ksk, ok := props["kskKeySize"].(float64); ok {
-		model.KskKeySize = types.Int64Value(int64(ksk))
-	}
-
-	if zsk, ok := props["zskKeySize"].(float64); ok {
-		model.ZskKeySize = types.Int64Value(int64(zsk))
-	}
-
-	if curve, ok := props["curve"].(string); ok && curve != "" {
-		model.Curve = types.StringValue(curve)
-	}
-
 	if ttl, ok := props["dnsKeyTtl"].(float64); ok {
 		model.DnsKeyTtl = types.Int64Value(int64(ttl))
 	}
 
-	if rollover, ok := props["zskRolloverDays"].(float64); ok {
-		model.ZskRolloverDays = types.Int64Value(int64(rollover))
-	}
-
-	if nxProof, ok := props["nxProof"].(string); ok && nxProof != "" {
-		model.NxProof = types.StringValue(nxProof)
-	}
-
-	if iter, ok := props["iterations"].(float64); ok {
-		model.Iterations = types.Int64Value(int64(iter))
-	}
-
-	if salt, ok := props["saltLength"].(float64); ok {
-		model.SaltLength = types.Int64Value(int64(salt))
-	}
-
-	// Get zone options for dnssecStatus.
-	zoneOpts, err := r.client.GetZoneOptions(zone)
-	if err != nil {
-		diags.AddError(
-			"Error Reading Zone Options",
-			fmt.Sprintf("Could not read zone options for %q: %s", zone, err),
-		)
-		return
-	}
-
-	if status, ok := zoneOpts["dnssecStatus"].(string); ok {
+	status, _ := props["dnssecStatus"].(string)
+	if status != "" {
 		model.DnssecStatus = types.StringValue(status)
+	}
+
+	switch {
+	case strings.HasSuffix(status, "WithNSEC"):
+		model.NxProof = types.StringValue("NSEC")
+	case strings.HasSuffix(status, "WithNSEC3"):
+		model.NxProof = types.StringValue("NSEC3")
+	default:
+		if !model.NxProof.IsNull() {
+			model.NxProof = types.StringNull()
+		}
+	}
+
+	keys, _ := props["dnssecPrivateKeys"].([]interface{})
+	for _, k := range keys {
+		keyMap, ok := k.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		keyType, _ := keyMap["keyType"].(string)
+		apiAlgo, _ := keyMap["algorithm"].(string)
+
+		algo, hashAlgo, curve := dnssecAlgoToProvider(apiAlgo)
+		model.Algorithm = types.StringValue(algo)
+
+		if hashAlgo != "" {
+			model.HashAlgorithm = types.StringValue(hashAlgo)
+		} else if !model.HashAlgorithm.IsNull() {
+			model.HashAlgorithm = types.StringNull()
+		}
+
+		if curve != "" {
+			model.Curve = types.StringValue(curve)
+		} else if !model.Curve.IsNull() {
+			model.Curve = types.StringNull()
+		}
+
+		if keyType == "ZoneSigningKey" {
+			if rd, ok := keyMap["rolloverDays"].(float64); ok {
+				model.ZskRolloverDays = types.Int64Value(int64(rd))
+			}
+		}
+	}
+
+	if !model.KskKeySize.IsNull() {
+		model.KskKeySize = types.Int64Null()
+	}
+	if !model.ZskKeySize.IsNull() {
+		model.ZskKeySize = types.Int64Null()
+	}
+	if !model.Iterations.IsNull() {
+		model.Iterations = types.Int64Null()
+	}
+	if !model.SaltLength.IsNull() {
+		model.SaltLength = types.Int64Null()
 	}
 }

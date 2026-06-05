@@ -1,10 +1,12 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strings"
@@ -18,21 +20,31 @@ type Client struct {
 	httpClient *http.Client
 }
 
+const defaultTimeout = 30 * time.Second
+
 // NewWithCredentials authenticates with the Technitium DNS server using
 // username/password and returns a Client ready to make API calls.
-func NewWithCredentials(baseURL, username, password string) (*Client, error) {
-	return NewClient(baseURL, username, password)
+func NewWithCredentials(baseURL, username, password string, timeout time.Duration) (*Client, error) {
+	return NewClient(baseURL, username, password, timeout)
 }
 
-// NewWithToken creates a Client using an existing API token.
-func NewWithToken(baseURL, token string) (*Client, error) {
+// NewWithToken creates a Client using an existing API token. It validates the
+// token by making a lightweight API call before returning.
+func NewWithToken(baseURL, token string, timeout time.Duration) (*Client, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
+	if timeout <= 0 {
+		timeout = defaultTimeout
+	}
 	c := &Client{
 		baseURL: baseURL,
 		token:   token,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: timeout,
 		},
+	}
+	_, err := c.doRequest(http.MethodGet, "settings/get", nil)
+	if err != nil {
+		return nil, fmt.Errorf("token validation failed: %w", err)
 	}
 	return c, nil
 }
@@ -40,13 +52,16 @@ func NewWithToken(baseURL, token string) (*Client, error) {
 // NewClient authenticates with the Technitium DNS server and returns a
 // Client ready to make API calls. The baseURL should be the scheme, host,
 // and port of the server (e.g. "http://192.168.1.1:5380").
-func NewClient(baseURL, username, password string) (*Client, error) {
+func NewClient(baseURL, username, password string, timeout time.Duration) (*Client, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
+	if timeout <= 0 {
+		timeout = defaultTimeout
+	}
 
 	c := &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: timeout,
 		},
 	}
 
@@ -93,72 +108,103 @@ func NewClient(baseURL, username, password string) (*Client, error) {
 // Authorization header. Parameters are sent as query string for GET or as
 // form data for POST.
 func (c *Client) doRequest(method, endpoint string, params url.Values) (map[string]interface{}, error) {
-	var req *http.Request
-	var err error
+	return c.doRequestCtx(context.Background(), method, endpoint, params)
+}
 
+const maxRetries = 3
+
+func (c *Client) doRequestCtx(ctx context.Context, method, endpoint string, params url.Values) (map[string]interface{}, error) {
 	fullURL := c.baseURL + "/api/" + strings.TrimLeft(endpoint, "/")
 
-	switch method {
-	case http.MethodGet:
-		req, err = http.NewRequest(http.MethodGet, fullURL, nil)
+	var lastErr error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			backoff := time.Duration(math.Pow(2, float64(attempt))) * time.Second
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(backoff):
+			}
+		}
+
+		var req *http.Request
+		var err error
+
+		switch method {
+		case http.MethodGet:
+			req, err = http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
+			if err != nil {
+				return nil, fmt.Errorf("creating request: %w", err)
+			}
+			if params != nil {
+				req.URL.RawQuery = params.Encode()
+			}
+		case http.MethodPost:
+			var body io.Reader
+			if params != nil {
+				body = strings.NewReader(params.Encode())
+			}
+			req, err = http.NewRequestWithContext(ctx, http.MethodPost, fullURL, body)
+			if err != nil {
+				return nil, fmt.Errorf("creating request: %w", err)
+			}
+			if params != nil {
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			}
+		default:
+			return nil, fmt.Errorf("unsupported HTTP method: %s", method)
+		}
+
+		req.Header.Set("Authorization", "Bearer "+c.token)
+
+		resp, err := c.httpClient.Do(req)
 		if err != nil {
-			return nil, fmt.Errorf("creating request: %w", err)
+			lastErr = fmt.Errorf("request to %s failed: %w", endpoint, err)
+			continue
 		}
-		if params != nil {
-			req.URL.RawQuery = params.Encode()
-		}
-	case http.MethodPost:
-		var body io.Reader
-		if params != nil {
-			body = strings.NewReader(params.Encode())
-		}
-		req, err = http.NewRequest(http.MethodPost, fullURL, body)
+
+		respBody, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
 		if err != nil {
-			return nil, fmt.Errorf("creating request: %w", err)
+			lastErr = fmt.Errorf("reading response from %s: %w", endpoint, err)
+			continue
 		}
-		if params != nil {
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		if resp.StatusCode == 429 || resp.StatusCode == 502 || resp.StatusCode == 503 || resp.StatusCode == 504 {
+			lastErr = fmt.Errorf("HTTP %d from %s: %s", resp.StatusCode, endpoint, truncateBody(respBody, 200))
+			continue
 		}
-	default:
-		return nil, fmt.Errorf("unsupported HTTP method: %s", method)
-	}
 
-	req.Header.Set("Authorization", "Bearer "+c.token)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", endpoint, err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading response from %s: %w", endpoint, err)
-	}
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("parsing response from %s: %w", endpoint, err)
-	}
-
-	status, _ := result["status"].(string)
-	switch status {
-	case "ok":
-		// success
-	case "error":
-		errMsg, _ := result["errorMessage"].(string)
-		if errMsg == "" {
-			errMsg = "unknown error"
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return nil, fmt.Errorf("HTTP %d from %s: %s", resp.StatusCode, endpoint, truncateBody(respBody, 200))
 		}
-		return nil, fmt.Errorf("API error from %s: %s", endpoint, errMsg)
-	case "invalid-token":
-		return nil, errors.New("session token is invalid or expired")
-	default:
-		return nil, fmt.Errorf("unexpected API status from %s: %s", endpoint, status)
+
+		var result map[string]interface{}
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return nil, fmt.Errorf("parsing response from %s: %w", endpoint, err)
+		}
+
+		status, _ := result["status"].(string)
+		switch status {
+		case "ok":
+			// success
+		case "error":
+			errMsg, _ := result["errorMessage"].(string)
+			if errMsg == "" {
+				errMsg = "unknown error"
+			}
+			return nil, fmt.Errorf("API error from %s: %s", endpoint, errMsg)
+		case "invalid-token":
+			return nil, errors.New("session token is invalid or expired")
+		default:
+			return nil, fmt.Errorf("unexpected API status from %s: %s", endpoint, status)
+		}
+
+		response, _ := result["response"].(map[string]interface{})
+		return response, nil
 	}
 
-	response, _ := result["response"].(map[string]interface{})
-	return response, nil
+	return nil, fmt.Errorf("request to %s failed after %d retries: %w", endpoint, maxRetries, lastErr)
 }
 
 // ---------------------------------------------------------------------------
@@ -185,7 +231,7 @@ func (c *Client) CreateZone(zone, zoneType string, extra ...url.Values) (map[str
 			}
 		}
 	}
-	return c.doRequest(http.MethodGet, "zones/create", params)
+	return c.doRequest(http.MethodPost, "zones/create", params)
 }
 
 // GetZoneOptions returns zone-specific options.
@@ -197,29 +243,30 @@ func (c *Client) GetZoneOptions(zone string) (map[string]interface{}, error) {
 
 // SetZoneOptions updates zone-specific options.
 func (c *Client) SetZoneOptions(zone string, params url.Values) (map[string]interface{}, error) {
-	params.Set("zone", zone)
-	return c.doRequest(http.MethodGet, "zones/options/set", params)
+	merged := cloneValues(params)
+	merged.Set("zone", zone)
+	return c.doRequest(http.MethodPost, "zones/options/set", merged)
 }
 
 // DeleteZone permanently deletes an authoritative zone.
 func (c *Client) DeleteZone(zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodGet, "zones/delete", params)
+	return c.doRequest(http.MethodPost, "zones/delete", params)
 }
 
 // EnableZone enables an authoritative zone.
 func (c *Client) EnableZone(zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodGet, "zones/enable", params)
+	return c.doRequest(http.MethodPost, "zones/enable", params)
 }
 
 // DisableZone disables an authoritative zone.
 func (c *Client) DisableZone(zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodGet, "zones/disable", params)
+	return c.doRequest(http.MethodPost, "zones/disable", params)
 }
 
 // ---------------------------------------------------------------------------
@@ -250,7 +297,7 @@ func (c *Client) AddRecord(params url.Values) (map[string]interface{}, error) {
 	if params.Get("type") == "" {
 		return nil, errors.New("AddRecord: type parameter is required")
 	}
-	return c.doRequest(http.MethodGet, "zones/records/add", params)
+	return c.doRequest(http.MethodPost, "zones/records/add", params)
 }
 
 // UpdateRecord updates an existing record in an authoritative zone. The
@@ -263,7 +310,7 @@ func (c *Client) UpdateRecord(params url.Values) (map[string]interface{}, error)
 	if params.Get("type") == "" {
 		return nil, errors.New("UpdateRecord: type parameter is required")
 	}
-	return c.doRequest(http.MethodGet, "zones/records/update", params)
+	return c.doRequest(http.MethodPost, "zones/records/update", params)
 }
 
 // DeleteRecord deletes a record from an authoritative zone. The params must
@@ -276,7 +323,7 @@ func (c *Client) DeleteRecord(params url.Values) (map[string]interface{}, error)
 	if params.Get("type") == "" {
 		return nil, errors.New("DeleteRecord: type parameter is required")
 	}
-	return c.doRequest(http.MethodGet, "zones/records/delete", params)
+	return c.doRequest(http.MethodPost, "zones/records/delete", params)
 }
 
 // ---------------------------------------------------------------------------
@@ -309,21 +356,21 @@ func (c *Client) SetDHCPScope(params url.Values) (map[string]interface{}, error)
 func (c *Client) DeleteDHCPScope(name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("name", name)
-	return c.doRequest(http.MethodGet, "dhcp/scopes/delete", params)
+	return c.doRequest(http.MethodPost, "dhcp/scopes/delete", params)
 }
 
 // EnableDHCPScope enables a DHCP scope to allow lease allocation.
 func (c *Client) EnableDHCPScope(name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("name", name)
-	return c.doRequest(http.MethodGet, "dhcp/scopes/enable", params)
+	return c.doRequest(http.MethodPost, "dhcp/scopes/enable", params)
 }
 
 // DisableDHCPScope disables a DHCP scope.
 func (c *Client) DisableDHCPScope(name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("name", name)
-	return c.doRequest(http.MethodGet, "dhcp/scopes/disable", params)
+	return c.doRequest(http.MethodPost, "dhcp/scopes/disable", params)
 }
 
 // ---------------------------------------------------------------------------
@@ -342,23 +389,25 @@ func (c *Client) ListDHCPLeases(scope string) (map[string]interface{}, error) {
 
 // AddReservedLease adds a reserved lease entry to the specified scope.
 func (c *Client) AddReservedLease(scopeName string, leaseParams url.Values) (map[string]interface{}, error) {
-	leaseParams.Set("name", scopeName)
 	if leaseParams.Get("hardwareAddress") == "" {
 		return nil, errors.New("AddReservedLease: hardwareAddress parameter is required")
 	}
 	if leaseParams.Get("ipAddress") == "" {
 		return nil, errors.New("AddReservedLease: ipAddress parameter is required")
 	}
-	return c.doRequest(http.MethodGet, "dhcp/scopes/addReservedLease", leaseParams)
+	merged := cloneValues(leaseParams)
+	merged.Set("name", scopeName)
+	return c.doRequest(http.MethodPost, "dhcp/scopes/addReservedLease", merged)
 }
 
 // RemoveReservedLease removes a reserved lease entry from the specified scope.
 func (c *Client) RemoveReservedLease(scopeName string, leaseParams url.Values) (map[string]interface{}, error) {
-	leaseParams.Set("name", scopeName)
 	if leaseParams.Get("hardwareAddress") == "" {
 		return nil, errors.New("RemoveReservedLease: hardwareAddress parameter is required")
 	}
-	return c.doRequest(http.MethodGet, "dhcp/scopes/removeReservedLease", leaseParams)
+	merged := cloneValues(leaseParams)
+	merged.Set("name", scopeName)
+	return c.doRequest(http.MethodPost, "dhcp/scopes/removeReservedLease", merged)
 }
 
 // ConvertToReservedLease converts a dynamic lease to a reserved lease.
@@ -384,14 +433,14 @@ func (c *Client) ListAllowedZones(domain string) (map[string]interface{}, error)
 func (c *Client) AllowZone(domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("domain", domain)
-	return c.doRequest(http.MethodGet, "allowed/add", params)
+	return c.doRequest(http.MethodPost, "allowed/add", params)
 }
 
 // DeleteAllowedZone removes a domain from the Allowed Zones.
 func (c *Client) DeleteAllowedZone(domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("domain", domain)
-	return c.doRequest(http.MethodGet, "allowed/delete", params)
+	return c.doRequest(http.MethodPost, "allowed/delete", params)
 }
 
 // ListBlockedZones returns all blocked zones. When domain is empty the root
@@ -408,14 +457,14 @@ func (c *Client) ListBlockedZones(domain string) (map[string]interface{}, error)
 func (c *Client) BlockZone(domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("domain", domain)
-	return c.doRequest(http.MethodGet, "blocked/add", params)
+	return c.doRequest(http.MethodPost, "blocked/add", params)
 }
 
 // DeleteBlockedZone removes a domain from the Blocked Zones.
 func (c *Client) DeleteBlockedZone(domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("domain", domain)
-	return c.doRequest(http.MethodGet, "blocked/delete", params)
+	return c.doRequest(http.MethodPost, "blocked/delete", params)
 }
 
 // ---------------------------------------------------------------------------
@@ -429,7 +478,7 @@ func (c *Client) GetDNSSettings() (map[string]interface{}, error) {
 
 // SetDNSSettings updates the DNS server settings.
 func (c *Client) SetDNSSettings(params url.Values) (map[string]interface{}, error) {
-	return c.doRequest(http.MethodGet, "settings/set", params)
+	return c.doRequest(http.MethodPost, "settings/set", params)
 }
 
 // GetTSIGKeyNames returns TSIG key names configured on the server.
@@ -473,15 +522,16 @@ func (c *Client) SetAppConfig(name string, config string) (map[string]interface{
 // SignZone signs an authoritative zone with DNSSEC. The params should include
 // algorithm-specific options (e.g. hashName, kskKeySize, curve).
 func (c *Client) SignZone(zone string, params url.Values) (map[string]interface{}, error) {
-	params.Set("zone", zone)
-	return c.doRequest(http.MethodGet, "zones/dnssec/sign", params)
+	merged := cloneValues(params)
+	merged.Set("zone", zone)
+	return c.doRequest(http.MethodPost, "zones/dnssec/sign", merged)
 }
 
 // UnsignZone removes DNSSEC signing from an authoritative zone.
 func (c *Client) UnsignZone(zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodGet, "zones/dnssec/unsign", params)
+	return c.doRequest(http.MethodPost, "zones/dnssec/unsign", params)
 }
 
 // GetDNSSECProperties returns the DNSSEC properties for a signed zone.
@@ -513,7 +563,7 @@ func (c *Client) CreateUser(username, password string, extra ...url.Values) (map
 			}
 		}
 	}
-	return c.doRequest(http.MethodGet, "admin/users/create", params)
+	return c.doRequest(http.MethodPost, "admin/users/create", params)
 }
 
 // GetUserDetails returns details for an admin user including group memberships.
@@ -526,15 +576,16 @@ func (c *Client) GetUserDetails(username string) (map[string]interface{}, error)
 
 // SetUserDetails updates properties of an admin user.
 func (c *Client) SetUserDetails(username string, params url.Values) (map[string]interface{}, error) {
-	params.Set("user", username)
-	return c.doRequest(http.MethodGet, "admin/users/set", params)
+	merged := cloneValues(params)
+	merged.Set("user", username)
+	return c.doRequest(http.MethodPost, "admin/users/set", merged)
 }
 
 // DeleteUser deletes an admin user.
 func (c *Client) DeleteUser(username string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("user", username)
-	return c.doRequest(http.MethodGet, "admin/users/delete", params)
+	return c.doRequest(http.MethodPost, "admin/users/delete", params)
 }
 
 // ---------------------------------------------------------------------------
@@ -553,7 +604,7 @@ func (c *Client) CreateGroup(name string, description string) (map[string]interf
 	if description != "" {
 		params.Set("description", description)
 	}
-	return c.doRequest(http.MethodGet, "admin/groups/create", params)
+	return c.doRequest(http.MethodPost, "admin/groups/create", params)
 }
 
 // GetGroupDetails returns details for an admin group including members.
@@ -566,15 +617,16 @@ func (c *Client) GetGroupDetails(name string) (map[string]interface{}, error) {
 
 // SetGroupDetails updates properties of an admin group.
 func (c *Client) SetGroupDetails(name string, params url.Values) (map[string]interface{}, error) {
-	params.Set("group", name)
-	return c.doRequest(http.MethodGet, "admin/groups/set", params)
+	merged := cloneValues(params)
+	merged.Set("group", name)
+	return c.doRequest(http.MethodPost, "admin/groups/set", merged)
 }
 
 // DeleteGroup deletes an admin group.
 func (c *Client) DeleteGroup(name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("group", name)
-	return c.doRequest(http.MethodGet, "admin/groups/delete", params)
+	return c.doRequest(http.MethodPost, "admin/groups/delete", params)
 }
 
 // ---------------------------------------------------------------------------
@@ -590,6 +642,22 @@ func (c *Client) GetPermissions(section string) (map[string]interface{}, error) 
 
 // SetPermissions updates the permission configuration for a section.
 func (c *Client) SetPermissions(section string, params url.Values) (map[string]interface{}, error) {
-	params.Set("section", section)
-	return c.doRequest(http.MethodGet, "admin/permissions/set", params)
+	merged := cloneValues(params)
+	merged.Set("section", section)
+	return c.doRequest(http.MethodPost, "admin/permissions/set", merged)
+}
+
+func truncateBody(body []byte, maxLen int) string {
+	if len(body) <= maxLen {
+		return string(body)
+	}
+	return string(body[:maxLen]) + "..."
+}
+
+func cloneValues(src url.Values) url.Values {
+	dst := make(url.Values, len(src))
+	for k, vs := range src {
+		dst[k] = append([]string(nil), vs...)
+	}
+	return dst
 }

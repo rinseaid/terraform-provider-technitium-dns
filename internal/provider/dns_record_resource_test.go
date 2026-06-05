@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -8,6 +9,43 @@ import (
 )
 
 func testAccCheckDNSRecordDestroy(s *terraform.State) error {
+	c, err := testAccClientFromEnv()
+	if err != nil {
+		return fmt.Errorf("creating client for destroy check: %s", err)
+	}
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "technitium_dns_record" {
+			continue
+		}
+
+		domain := rs.Primary.Attributes["domain"]
+		zone := rs.Primary.Attributes["zone"]
+		recType := rs.Primary.Attributes["type"]
+		value := rs.Primary.Attributes["value"]
+
+		response, err := c.GetRecords(domain, zone, false)
+		if err != nil {
+			continue
+		}
+
+		records, ok := response["records"].([]interface{})
+		if !ok {
+			continue
+		}
+
+		for _, item := range records {
+			rec, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if stringFromMap(rec, "type") == recType && recordValueFromRData(rec, recType) == value {
+				return fmt.Errorf("DNS record %s (type %s, value %s) still exists in zone %s after destroy",
+					domain, recType, value, zone)
+			}
+		}
+	}
+
 	return nil
 }
 

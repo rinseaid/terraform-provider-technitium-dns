@@ -168,10 +168,14 @@ func (r *adminGroupResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		params.Set("description", plan.Description.ValueString())
+	} else {
+		params.Set("description", "")
 	}
 
 	if !plan.Members.IsNull() && !plan.Members.IsUnknown() {
 		params.Set("members", plan.Members.ValueString())
+	} else {
+		params.Set("members", "")
 	}
 
 	_, err := r.client.SetGroupDetails(name, params)
@@ -241,8 +245,10 @@ func (r *adminGroupResource) ImportState(ctx context.Context, req resource.Impor
 
 // populateModelFromResponse fills the model fields from an API response map.
 func (r *adminGroupResource) populateModelFromResponse(resp map[string]interface{}, model *adminGroupResourceModel) {
-	if description, ok := resp["description"].(string); ok {
+	if description, ok := resp["description"].(string); ok && description != "" {
 		model.Description = types.StringValue(description)
+	} else if !model.Description.IsNull() {
+		model.Description = types.StringNull()
 	}
 
 	if members, ok := resp["members"].([]interface{}); ok {
@@ -258,6 +264,10 @@ func (r *adminGroupResource) populateModelFromResponse(resp map[string]interface
 		}
 		if len(names) > 0 {
 			model.Members = types.StringValue(strings.Join(names, ","))
+		} else if !model.Members.IsNull() {
+			model.Members = types.StringNull()
 		}
+	} else if !model.Members.IsNull() {
+		model.Members = types.StringNull()
 	}
 }

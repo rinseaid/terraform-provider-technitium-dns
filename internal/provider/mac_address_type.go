@@ -93,8 +93,7 @@ func (m requiresReplaceIfMACChanged) MarkdownDescription(_ context.Context) stri
 }
 
 func (m requiresReplaceIfMACChanged) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	if req.StateValue.IsNull() || req.PlanValue.IsNull() {
-		resp.RequiresReplace = true
+	if req.StateValue.IsNull() || req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
 		return
 	}
 	if normalizeMAC(req.StateValue.ValueString()) != normalizeMAC(req.PlanValue.ValueString()) {

@@ -1,11 +1,13 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 )
 
 // newTestServer sets up an httptest.Server that mimics the Technitium API.
@@ -60,7 +62,8 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/zones/create", func(w http.ResponseWriter, r *http.Request) {
-		zone := r.URL.Query().Get("zone")
+		_ = r.ParseForm()
+		zone := r.FormValue("zone")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
@@ -100,24 +103,26 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/zones/records/add", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
 				"addedRecord": map[string]interface{}{
-					"name": r.URL.Query().Get("domain"),
-					"type": r.URL.Query().Get("type"),
+					"name": r.FormValue("domain"),
+					"type": r.FormValue("type"),
 				},
 			},
 		})
 	})
 
 	mux.HandleFunc("/api/zones/records/update", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
 				"updatedRecord": map[string]interface{}{
-					"name": r.URL.Query().Get("domain"),
-					"type": r.URL.Query().Get("type"),
+					"name": r.FormValue("domain"),
+					"type": r.FormValue("type"),
 				},
 			},
 		})
@@ -423,11 +428,12 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/admin/users/create", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
-				"username":    r.URL.Query().Get("user"),
-				"displayName": r.URL.Query().Get("displayName"),
+				"username":    r.FormValue("user"),
+				"displayName": r.FormValue("displayName"),
 			},
 		})
 	})
@@ -477,11 +483,12 @@ func newTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/api/admin/groups/create", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 			"response": map[string]interface{}{
-				"name":        r.URL.Query().Get("group"),
-				"description": r.URL.Query().Get("description"),
+				"name":        r.FormValue("group"),
+				"description": r.FormValue("description"),
 			},
 		})
 	})
@@ -554,7 +561,7 @@ func TestNewClient(t *testing.T) {
 	defer srv.Close()
 
 	t.Run("successful login", func(t *testing.T) {
-		c, err := NewClient(srv.URL, "admin", "admin")
+		c, err := NewClient(srv.URL, "admin", "admin", 0)
 		if err != nil {
 			t.Fatalf("expected no error, got: %v", err)
 		}
@@ -567,14 +574,14 @@ func TestNewClient(t *testing.T) {
 	})
 
 	t.Run("bad credentials", func(t *testing.T) {
-		_, err := NewClient(srv.URL, "admin", "wrong")
+		_, err := NewClient(srv.URL, "admin", "wrong", 0)
 		if err == nil {
 			t.Fatal("expected error for bad credentials, got nil")
 		}
 	})
 
 	t.Run("unreachable server", func(t *testing.T) {
-		_, err := NewClient("http://127.0.0.1:1", "admin", "admin")
+		_, err := NewClient("http://127.0.0.1:1", "admin", "admin", 0)
 		if err == nil {
 			t.Fatal("expected error for unreachable server, got nil")
 		}
@@ -585,7 +592,7 @@ func TestListZones(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -613,7 +620,7 @@ func TestCreateZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -633,7 +640,7 @@ func TestDeleteZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -648,7 +655,7 @@ func TestGetRecords(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -671,7 +678,7 @@ func TestAddRecord(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -696,7 +703,7 @@ func TestAddRecord_MissingParams(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -724,7 +731,7 @@ func TestUpdateRecord(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -745,7 +752,7 @@ func TestDeleteRecord(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -765,7 +772,7 @@ func TestListDHCPScopes(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -788,7 +795,7 @@ func TestGetDHCPScope(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -808,7 +815,7 @@ func TestSetDHCPScope(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -829,7 +836,7 @@ func TestSetDHCPScope_MissingName(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -845,7 +852,7 @@ func TestDeleteDHCPScope(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -860,7 +867,7 @@ func TestAddReservedLease(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -878,7 +885,7 @@ func TestRemoveReservedLease(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -895,7 +902,7 @@ func TestNewWithToken(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewWithToken(srv.URL, "test-token-abc123")
+	c, err := NewWithToken(srv.URL, "test-token-abc123", 0)
 	if err != nil {
 		t.Fatalf("NewWithToken failed: %v", err)
 	}
@@ -917,7 +924,7 @@ func TestNewWithToken_TrailingSlash(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewWithToken(srv.URL+"/", "test-token-abc123")
+	c, err := NewWithToken(srv.URL+"/", "test-token-abc123", 0)
 	if err != nil {
 		t.Fatalf("NewWithToken failed: %v", err)
 	}
@@ -930,7 +937,7 @@ func TestNewWithCredentials(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewWithCredentials(srv.URL, "admin", "admin")
+	c, err := NewWithCredentials(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("NewWithCredentials failed: %v", err)
 	}
@@ -943,7 +950,7 @@ func TestEnableZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -958,7 +965,7 @@ func TestDisableZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -973,7 +980,7 @@ func TestGetZoneOptions(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -993,7 +1000,7 @@ func TestSetZoneOptions(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1010,7 +1017,7 @@ func TestEnableDHCPScope(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1025,7 +1032,7 @@ func TestDisableDHCPScope(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1040,7 +1047,7 @@ func TestListDHCPLeases(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1063,7 +1070,7 @@ func TestListDHCPLeases_NoScope(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1078,7 +1085,7 @@ func TestListAllowedZones(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1101,7 +1108,7 @@ func TestListAllowedZones_WithDomain(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1116,7 +1123,7 @@ func TestAllowZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1131,7 +1138,7 @@ func TestDeleteAllowedZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1146,7 +1153,7 @@ func TestListBlockedZones(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1169,7 +1176,7 @@ func TestBlockZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1184,7 +1191,7 @@ func TestDeleteBlockedZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1199,7 +1206,7 @@ func TestGetDNSSettings(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1219,7 +1226,7 @@ func TestSetDNSSettings(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1236,7 +1243,7 @@ func TestGetTSIGKeyNames(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1259,7 +1266,7 @@ func TestListCatalogZones(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1282,7 +1289,7 @@ func TestConvertToReservedLease(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1297,7 +1304,7 @@ func TestAddReservedLease_MissingParams(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1325,7 +1332,7 @@ func TestRemoveReservedLease_MissingParams(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1341,7 +1348,7 @@ func TestUpdateRecord_MissingParams(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1369,7 +1376,7 @@ func TestDeleteRecord_MissingParams(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1397,7 +1404,7 @@ func TestListApps(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1420,7 +1427,7 @@ func TestGetAppConfig(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1435,7 +1442,7 @@ func TestSetAppConfig(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1450,7 +1457,7 @@ func TestInvalidToken(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1480,7 +1487,7 @@ func TestDoRequest_MalformedJSON(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1508,7 +1515,7 @@ func TestDoRequest_ErrorWithMessage(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1538,7 +1545,7 @@ func TestDoRequest_ErrorWithoutMessage(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1568,7 +1575,7 @@ func TestDoRequest_UnexpectedStatus(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1585,13 +1592,17 @@ func TestDoRequest_UnexpectedStatus(t *testing.T) {
 func TestDoRequest_ServerDown(t *testing.T) {
 	srv := httptest.NewServer(http.NewServeMux())
 	c := &Client{
-		baseURL:    srv.URL,
-		token:      "test-token",
-		httpClient: srv.Client(),
+		baseURL: srv.URL,
+		token:   "test-token",
+		httpClient: &http.Client{
+			Timeout: 1 * time.Second,
+		},
 	}
 	srv.Close()
 
-	_, err := c.ListZones()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := c.doRequestCtx(ctx, http.MethodGet, "zones/list", nil)
 	if err == nil {
 		t.Fatal("expected error for closed server")
 	}
@@ -1625,7 +1636,7 @@ func TestDoRequest_POST(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1658,7 +1669,7 @@ func TestDoRequest_NilResponse(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1682,7 +1693,7 @@ func TestNewClient_LoginMissingToken(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	_, err := NewClient(srv.URL, "admin", "admin")
+	_, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err == nil {
 		t.Fatal("expected error for missing token in login response")
 	}
@@ -1696,7 +1707,7 @@ func TestNewClient_LoginMalformedJSON(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	_, err := NewClient(srv.URL, "admin", "admin")
+	_, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err == nil {
 		t.Fatal("expected error for malformed login response")
 	}
@@ -1706,7 +1717,7 @@ func TestGetRecords_WithZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1729,7 +1740,7 @@ func TestListBlockedZones_WithDomain(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1744,7 +1755,7 @@ func TestCreateZone_WithExtra(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1772,7 +1783,7 @@ func TestSignZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1790,7 +1801,7 @@ func TestUnsignZone(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1805,7 +1816,7 @@ func TestGetDNSSECProperties(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1834,7 +1845,7 @@ func TestListUsers(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1857,7 +1868,7 @@ func TestCreateUser(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1877,7 +1888,7 @@ func TestCreateUser_WithExtra(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1900,7 +1911,7 @@ func TestGetUserDetails(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1925,7 +1936,7 @@ func TestSetUserDetails(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1942,7 +1953,7 @@ func TestDeleteUser(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1961,7 +1972,7 @@ func TestListGroups(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -1984,7 +1995,7 @@ func TestCreateGroup(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -2004,7 +2015,7 @@ func TestCreateGroup_NoDescription(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -2019,7 +2030,7 @@ func TestGetGroupDetails(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -2044,7 +2055,7 @@ func TestSetGroupDetails(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -2061,7 +2072,7 @@ func TestDeleteGroup(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -2080,7 +2091,7 @@ func TestGetPermissions(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -2116,7 +2127,7 @@ func TestSetPermissions(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin")
+	c, err := NewClient(srv.URL, "admin", "admin", 0)
 	if err != nil {
 		t.Fatalf("login failed: %v", err)
 	}
@@ -2127,5 +2138,121 @@ func TestSetPermissions(t *testing.T) {
 	_, err = c.SetPermissions("Zones", params)
 	if err != nil {
 		t.Fatalf("SetPermissions failed: %v", err)
+	}
+}
+
+func TestDoRequest_RetryOn503(t *testing.T) {
+	attempts := 0
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/settings/get", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"dnsServerDomain": "test",
+			},
+		})
+	})
+	mux.HandleFunc("/api/zones/list", func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts <= 2 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("temporarily unavailable"))
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"zones": []interface{}{},
+			},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c, err := NewWithToken(srv.URL, "test-token", 0)
+	if err != nil {
+		t.Fatalf("NewWithToken failed: %v", err)
+	}
+
+	_, err = c.ListZones()
+	if err != nil {
+		t.Fatalf("expected success after retries, got: %v", err)
+	}
+	if attempts != 3 {
+		t.Errorf("expected 3 attempts (2 retries + 1 success), got %d", attempts)
+	}
+}
+
+func TestDoRequest_NonRetriableHTTPError(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/settings/get", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"response": map[string]interface{}{
+				"dnsServerDomain": "test",
+			},
+		})
+	})
+	mux.HandleFunc("/api/zones/list", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("forbidden"))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c, err := NewWithToken(srv.URL, "test-token", 0)
+	if err != nil {
+		t.Fatalf("NewWithToken failed: %v", err)
+	}
+
+	_, err = c.ListZones()
+	if err == nil {
+		t.Fatal("expected error for 403 response")
+	}
+	expected := "HTTP 403 from zones/list: forbidden"
+	if err.Error() != expected {
+		t.Errorf("expected %q, got %q", expected, err.Error())
+	}
+}
+
+func TestMutatingEndpoints_UsePOST(t *testing.T) {
+	var lastMethod string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/settings/get", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{"dnsServerDomain": "test"},
+		})
+	})
+	mux.HandleFunc("/api/zones/create", func(w http.ResponseWriter, r *http.Request) {
+		lastMethod = r.Method
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{"domain": "test"},
+		})
+	})
+	mux.HandleFunc("/api/zones/delete", func(w http.ResponseWriter, r *http.Request) {
+		lastMethod = r.Method
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"response": map[string]interface{}{},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c, err := NewWithToken(srv.URL, "test-token", 0)
+	if err != nil {
+		t.Fatalf("NewWithToken failed: %v", err)
+	}
+
+	_, _ = c.CreateZone("test.example", "Primary")
+	if lastMethod != http.MethodPost {
+		t.Errorf("CreateZone: expected POST, got %s", lastMethod)
+	}
+
+	_, _ = c.DeleteZone("test.example")
+	if lastMethod != http.MethodPost {
+		t.Errorf("DeleteZone: expected POST, got %s", lastMethod)
 	}
 }

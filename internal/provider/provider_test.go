@@ -21,12 +21,13 @@ func testAccClientFromEnv() (*client.Client, error) {
 	serverURL := os.Getenv("TECHNITIUM_SERVER_URL")
 	apiToken := os.Getenv("TECHNITIUM_API_TOKEN")
 	if apiToken != "" {
-		return client.NewWithToken(serverURL, apiToken)
+		return client.NewWithToken(serverURL, apiToken, 0)
 	}
 	return client.NewWithCredentials(
 		serverURL,
 		os.Getenv("TECHNITIUM_USERNAME"),
 		os.Getenv("TECHNITIUM_PASSWORD"),
+		0,
 	)
 }
 

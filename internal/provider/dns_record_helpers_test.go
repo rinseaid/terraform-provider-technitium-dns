@@ -310,13 +310,13 @@ func TestBuildDeleteParams_SRV(t *testing.T) {
 
 func TestBuildAddParams_CAA(t *testing.T) {
 	plan := &dnsRecordResourceModel{
-		Zone:  types.StringValue("example.com"),
+		Zone:   types.StringValue("example.com"),
 		Domain: types.StringValue("example.com"),
-		Type:  types.StringValue("CAA"),
-		Value: types.StringValue("letsencrypt.org"),
-		TTL:   types.Int64Value(3600),
-		Flags: types.Int64Value(0),
-		Tag:   types.StringValue("issue"),
+		Type:   types.StringValue("CAA"),
+		Value:  types.StringValue("letsencrypt.org"),
+		TTL:    types.Int64Value(3600),
+		Flags:  types.Int64Value(0),
+		Tag:    types.StringValue("issue"),
 	}
 	params := buildAddParams(plan)
 
@@ -368,22 +368,22 @@ func TestBuildAddParams_FWD_Advanced(t *testing.T) {
 
 func TestBuildUpdateParams_CAA(t *testing.T) {
 	state := &dnsRecordResourceModel{
-		Zone:  types.StringValue("example.com"),
+		Zone:   types.StringValue("example.com"),
 		Domain: types.StringValue("example.com"),
-		Type:  types.StringValue("CAA"),
-		Value: types.StringValue("letsencrypt.org"),
-		TTL:   types.Int64Value(3600),
-		Flags: types.Int64Value(0),
-		Tag:   types.StringValue("issue"),
+		Type:   types.StringValue("CAA"),
+		Value:  types.StringValue("letsencrypt.org"),
+		TTL:    types.Int64Value(3600),
+		Flags:  types.Int64Value(0),
+		Tag:    types.StringValue("issue"),
 	}
 	plan := &dnsRecordResourceModel{
-		Zone:  types.StringValue("example.com"),
+		Zone:   types.StringValue("example.com"),
 		Domain: types.StringValue("example.com"),
-		Type:  types.StringValue("CAA"),
-		Value: types.StringValue("buypass.com"),
-		TTL:   types.Int64Value(3600),
-		Flags: types.Int64Value(128),
-		Tag:   types.StringValue("issuewild"),
+		Type:   types.StringValue("CAA"),
+		Value:  types.StringValue("buypass.com"),
+		TTL:    types.Int64Value(3600),
+		Flags:  types.Int64Value(128),
+		Tag:    types.StringValue("issuewild"),
 	}
 	params := buildUpdateParams(state, plan)
 
@@ -452,12 +452,12 @@ func TestBuildUpdateParams_FWD_Advanced(t *testing.T) {
 
 func TestBuildDeleteParams_CAA(t *testing.T) {
 	state := &dnsRecordResourceModel{
-		Zone:  types.StringValue("example.com"),
+		Zone:   types.StringValue("example.com"),
 		Domain: types.StringValue("example.com"),
-		Type:  types.StringValue("CAA"),
-		Value: types.StringValue("letsencrypt.org"),
-		Flags: types.Int64Value(0),
-		Tag:   types.StringValue("issue"),
+		Type:   types.StringValue("CAA"),
+		Value:  types.StringValue("letsencrypt.org"),
+		Flags:  types.Int64Value(0),
+		Tag:    types.StringValue("issue"),
 	}
 	params := buildDeleteParams(state)
 
@@ -655,11 +655,11 @@ func TestBuildAddParams_SSHFP(t *testing.T) {
 
 func TestBuildAddParams_TLSA(t *testing.T) {
 	plan := &dnsRecordResourceModel{
-		Zone:                            types.StringValue("example.com"),
-		Domain:                          types.StringValue("_443._tcp.example.com"),
-		Type:                            types.StringValue("TLSA"),
-		Value:                           types.StringValue("abc123"),
-		TTL:                             types.Int64Value(3600),
+		Zone:                           types.StringValue("example.com"),
+		Domain:                         types.StringValue("_443._tcp.example.com"),
+		Type:                           types.StringValue("TLSA"),
+		Value:                          types.StringValue("abc123"),
+		TTL:                            types.Int64Value(3600),
 		TlsaCertificateUsage:           types.StringValue("DANE-EE"),
 		TlsaSelector:                   types.StringValue("SPKI"),
 		TlsaMatchingType:               types.StringValue("SHA2-256"),

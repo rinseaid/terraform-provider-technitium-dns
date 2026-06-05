@@ -40,7 +40,7 @@ resource "technitium_dns_zone" "secondary_catalog" {
 ### Required
 
 - `name` (String) The domain name of the zone.
-- `type` (String) The type of zone. Valid values: Primary, Secondary, Stub, Forwarder, SecondaryForwarder, Catalog.
+- `type` (String) The type of zone. Valid values: Primary, Secondary, Stub, Forwarder, SecondaryForwarder, Catalog, SecondaryCatalog.
 
 ### Optional
 

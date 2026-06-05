@@ -35,20 +35,20 @@ type dnsRecordResource struct {
 }
 
 type dnsRecordResourceModel struct {
-	ID               types.String `tfsdk:"id"`
-	Zone             types.String `tfsdk:"zone"`
-	Domain           types.String `tfsdk:"domain"`
-	Type             types.String `tfsdk:"type"`
-	Value            types.String `tfsdk:"value"`
-	TTL              types.Int64  `tfsdk:"ttl"`
-	Disabled         types.Bool   `tfsdk:"disabled"`
-	Comments         types.String `tfsdk:"comments"`
-	Priority         types.Int64  `tfsdk:"priority"`
-	Weight           types.Int64  `tfsdk:"weight"`
-	Port             types.Int64  `tfsdk:"port"`
-	Protocol         types.String `tfsdk:"protocol"`
-	Flags            types.Int64  `tfsdk:"flags"`
-	Tag              types.String `tfsdk:"tag"`
+	ID                types.String `tfsdk:"id"`
+	Zone              types.String `tfsdk:"zone"`
+	Domain            types.String `tfsdk:"domain"`
+	Type              types.String `tfsdk:"type"`
+	Value             types.String `tfsdk:"value"`
+	TTL               types.Int64  `tfsdk:"ttl"`
+	Disabled          types.Bool   `tfsdk:"disabled"`
+	Comments          types.String `tfsdk:"comments"`
+	Priority          types.Int64  `tfsdk:"priority"`
+	Weight            types.Int64  `tfsdk:"weight"`
+	Port              types.Int64  `tfsdk:"port"`
+	Protocol          types.String `tfsdk:"protocol"`
+	Flags             types.Int64  `tfsdk:"flags"`
+	Tag               types.String `tfsdk:"tag"`
 	ForwarderPriority types.Int64  `tfsdk:"forwarder_priority"`
 	DnssecValidation  types.Bool   `tfsdk:"dnssec_validation"`
 	ProxyType         types.String `tfsdk:"proxy_type"`
@@ -426,9 +426,16 @@ func (r *dnsRecordResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	r.readRecordIntoModel(ctx, &state, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() {
-		resp.State.RemoveResource(ctx)
+	var readDiags diag.Diagnostics
+	r.readRecordIntoModel(ctx, &state, &readDiags)
+	if readDiags.HasError() {
+		for _, d := range readDiags {
+			if d.Summary() == "Record Not Found" {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+		}
+		resp.Diagnostics.Append(readDiags...)
 		return
 	}
 
@@ -588,6 +595,8 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 	} else if !model.Comments.IsNull() {
 		model.Comments = types.StringNull()
 	}
+
+	nullifyUnknowns(model)
 
 	rData, _ := found["rData"].(map[string]interface{})
 	if rData != nil {
@@ -896,7 +905,8 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		params.Set("ipAddress", oldValue)
 		params.Set("newIpAddress", newValue)
 	case "CNAME":
-		params.Set("cname", newValue)
+		params.Set("cname", oldValue)
+		params.Set("newCName", newValue)
 	case "NS":
 		params.Set("nameServer", oldValue)
 		params.Set("newNameServer", newValue)
@@ -978,8 +988,8 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		} else {
 			params.Set("newProtocol", "Udp")
 		}
-		if !state.ForwarderPriority.IsNull() && !state.ForwarderPriority.IsUnknown() {
-			params.Set("forwarderPriority", fmt.Sprintf("%d", state.ForwarderPriority.ValueInt64()))
+		if !plan.ForwarderPriority.IsNull() && !plan.ForwarderPriority.IsUnknown() {
+			params.Set("forwarderPriority", fmt.Sprintf("%d", plan.ForwarderPriority.ValueInt64()))
 		}
 		if !plan.DnssecValidation.IsNull() && !plan.DnssecValidation.IsUnknown() {
 			params.Set("dnssecValidation", fmt.Sprintf("%t", plan.DnssecValidation.ValueBool()))
@@ -1013,7 +1023,8 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		params.Set("aname", oldValue)
 		params.Set("newAName", newValue)
 	case "DNAME":
-		params.Set("dname", newValue)
+		params.Set("dname", oldValue)
+		params.Set("newDName", newValue)
 	case "NAPTR":
 		if !state.NaptrOrder.IsNull() && !state.NaptrOrder.IsUnknown() {
 			params.Set("naptrOrder", fmt.Sprintf("%d", state.NaptrOrder.ValueInt64()))
@@ -1227,10 +1238,12 @@ func buildDeleteParams(state *dnsRecordResourceModel) url.Values {
 		if !state.RecordData.IsNull() && !state.RecordData.IsUnknown() {
 			params.Set("recordData", state.RecordData.ValueString())
 		}
+	case "CNAME":
+		params.Set("cname", value)
 	case "ANAME":
-		if !state.AName.IsNull() && !state.AName.IsUnknown() {
-			params.Set("aname", state.AName.ValueString())
-		}
+		params.Set("aname", value)
+	case "DNAME":
+		params.Set("dname", value)
 	case "NAPTR":
 		if !state.NaptrOrder.IsNull() && !state.NaptrOrder.IsUnknown() {
 			params.Set("naptrOrder", fmt.Sprintf("%d", state.NaptrOrder.ValueInt64()))

@@ -199,10 +199,18 @@ func (r *adminUserResource) Update(ctx context.Context, req resource.UpdateReque
 		"username": username,
 	})
 
+	var state adminUserResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	params := url.Values{}
 
 	if !plan.DisplayName.IsNull() && !plan.DisplayName.IsUnknown() {
 		params.Set("displayName", plan.DisplayName.ValueString())
+	} else {
+		params.Set("displayName", "")
 	}
 
 	if !plan.Disabled.IsNull() && !plan.Disabled.IsUnknown() {
@@ -219,6 +227,12 @@ func (r *adminUserResource) Update(ctx context.Context, req resource.UpdateReque
 
 	if !plan.MemberOfGroups.IsNull() && !plan.MemberOfGroups.IsUnknown() {
 		params.Set("memberOfGroups", plan.MemberOfGroups.ValueString())
+	} else {
+		params.Set("memberOfGroups", "")
+	}
+
+	if !plan.Password.Equal(state.Password) {
+		params.Set("newPass", plan.Password.ValueString())
 	}
 
 	_, err := r.client.SetUserDetails(username, params)
@@ -328,6 +342,10 @@ func (r *adminUserResource) populateModelFromResponse(resp map[string]interface{
 		}
 		if len(names) > 0 {
 			model.MemberOfGroups = types.StringValue(strings.Join(names, ","))
+		} else if !model.MemberOfGroups.IsNull() {
+			model.MemberOfGroups = types.StringNull()
 		}
+	} else if !model.MemberOfGroups.IsNull() {
+		model.MemberOfGroups = types.StringNull()
 	}
 }
