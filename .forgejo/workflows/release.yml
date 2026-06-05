@@ -1,10 +1,9 @@
-name: Acceptance Tests
+name: Release
 
 on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 jobs:
   acceptance:
@@ -25,24 +24,60 @@ jobs:
           --health-start-period 10s
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Wait for Technitium
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Wait for Technitium API
         run: |
           for i in $(seq 1 30); do
             if curl -sf http://localhost:5380/api/user/login -d 'user=admin&pass=admin' | grep -q '"status":"ok"'; then
-              echo "Technitium is ready"
+              echo "Technitium API is ready"
               exit 0
             fi
-            echo "Waiting for Technitium... ($i/30)"
+            echo "Waiting... ($i/30)"
             sleep 2
           done
           echo "Technitium failed to start"
           exit 1
 
-      - name: Run acceptance tests
+      - name: Run full test suite
         env:
           TF_ACC: "1"
           TECHNITIUM_SERVER_URL: http://localhost:5380
           TECHNITIUM_USERNAME: admin
           TECHNITIUM_PASSWORD: admin
         run: go test -count=1 -v -timeout 30m ./...
+
+  goreleaser:
+    runs-on: ubuntu-latest
+    needs: acceptance
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
