@@ -143,6 +143,75 @@ resource "technitium_dns_record" "test" {
 	})
 }
 
+func TestAccDNSRecordResource_SRV(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testsrv.example"
+  type = "Primary"
+}
+
+resource "technitium_dns_record" "test" {
+  zone     = technitium_dns_zone.test.name
+  domain   = "_sip._tcp.testsrv.example"
+  type     = "SRV"
+  value    = "sip.testsrv.example"
+  ttl      = 3600
+  priority = 10
+  weight   = 60
+  port     = 5060
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "zone", "testsrv.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "domain", "_sip._tcp.testsrv.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "SRV"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "sip.testsrv.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "priority", "10"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "weight", "60"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "port", "5060"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSRecordResource_FWD(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name = "testfwd.example"
+  type = "Forwarder"
+}
+
+resource "technitium_dns_record" "test" {
+  zone     = technitium_dns_zone.test.name
+  domain   = "testfwd.example"
+  type     = "FWD"
+  value    = "1.1.1.1"
+  protocol = "Udp"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "zone", "testfwd.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "domain", "testfwd.example"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "type", "FWD"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "value", "1.1.1.1"),
+					resource.TestCheckResourceAttr("technitium_dns_record.test", "protocol", "Udp"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDNSRecordResource_updateValue(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),

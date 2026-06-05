@@ -44,6 +44,9 @@ type dnsRecordResourceModel struct {
 	Disabled types.Bool   `tfsdk:"disabled"`
 	Comments types.String `tfsdk:"comments"`
 	Priority types.Int64  `tfsdk:"priority"`
+	Weight   types.Int64  `tfsdk:"weight"`
+	Port     types.Int64  `tfsdk:"port"`
+	Protocol types.String `tfsdk:"protocol"`
 }
 
 func (r *dnsRecordResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -80,12 +83,12 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf(
-						"A", "AAAA", "CNAME", "MX", "TXT", "SRV", "NS", "PTR", "CAA", "SOA",
+						"A", "AAAA", "CNAME", "MX", "TXT", "SRV", "NS", "PTR", "CAA", "SOA", "FWD",
 					),
 				},
 			},
 			"value": schema.StringAttribute{
-				Description: "The record value. IP address for A/AAAA, hostname for CNAME/NS/PTR/MX, text for TXT, etc.",
+				Description: "The record value. IP address for A/AAAA, hostname for CNAME/NS/PTR/MX/SRV, text for TXT, forwarder address for FWD.",
 				Required:    true,
 			},
 			"ttl": schema.Int64Attribute{
@@ -107,6 +110,21 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"priority": schema.Int64Attribute{
 				Description: "Priority value for MX and SRV records.",
 				Optional:    true,
+			},
+			"weight": schema.Int64Attribute{
+				Description: "Weight value for SRV records.",
+				Optional:    true,
+			},
+			"port": schema.Int64Attribute{
+				Description: "Port number for SRV records.",
+				Optional:    true,
+			},
+			"protocol": schema.StringAttribute{
+				Description: "Forwarding protocol for FWD records. Valid values: Udp, Tcp, Tls, Https, Quic.",
+				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("Udp", "Tcp", "Tls", "Https", "Quic"),
+				},
 			},
 		},
 	}
@@ -340,15 +358,26 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 	}
 
 	rData, _ := found["rData"].(map[string]interface{})
-	if rData != nil && (recType == "MX" || recType == "SRV") {
-		var prio float64
-		if recType == "MX" {
-			prio, _ = rData["preference"].(float64)
-		} else {
-			prio, _ = rData["priority"].(float64)
-		}
-		if prio > 0 || !model.Priority.IsNull() {
-			model.Priority = types.Int64Value(int64(prio))
+	if rData != nil {
+		switch recType {
+		case "MX":
+			if pref, ok := rData["preference"].(float64); ok && (pref > 0 || !model.Priority.IsNull()) {
+				model.Priority = types.Int64Value(int64(pref))
+			}
+		case "SRV":
+			if prio, ok := rData["priority"].(float64); ok && (prio > 0 || !model.Priority.IsNull()) {
+				model.Priority = types.Int64Value(int64(prio))
+			}
+			if w, ok := rData["weight"].(float64); ok {
+				model.Weight = types.Int64Value(int64(w))
+			}
+			if p, ok := rData["port"].(float64); ok {
+				model.Port = types.Int64Value(int64(p))
+			}
+		case "FWD":
+			if proto, ok := rData["protocol"].(string); ok && proto != "" {
+				model.Protocol = types.StringValue(proto)
+			}
 		}
 	}
 }
@@ -388,6 +417,9 @@ func recordValueFromRData(rec map[string]interface{}, recordType string) string 
 	case "SOA":
 		v, _ := rData["primaryNameServer"].(string)
 		return v
+	case "FWD":
+		v, _ := rData["forwarder"].(string)
+		return v
 	default:
 		return ""
 	}
@@ -409,7 +441,7 @@ func buildAddParams(plan *dnsRecordResourceModel) url.Values {
 		params.Set("comments", plan.Comments.ValueString())
 	}
 
-	setValueParams(params, plan.Type.ValueString(), plan.Value.ValueString(), plan.Priority)
+	setValueParams(params, plan)
 	return params
 }
 
@@ -466,11 +498,32 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		if !plan.Priority.IsNull() && !plan.Priority.IsUnknown() {
 			params.Set("newPriority", fmt.Sprintf("%d", plan.Priority.ValueInt64()))
 		}
+		if !state.Weight.IsNull() && !state.Weight.IsUnknown() {
+			params.Set("weight", fmt.Sprintf("%d", state.Weight.ValueInt64()))
+		}
+		if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
+			params.Set("newWeight", fmt.Sprintf("%d", plan.Weight.ValueInt64()))
+		}
+		if !state.Port.IsNull() && !state.Port.IsUnknown() {
+			params.Set("port", fmt.Sprintf("%d", state.Port.ValueInt64()))
+		}
+		if !plan.Port.IsNull() && !plan.Port.IsUnknown() {
+			params.Set("newPort", fmt.Sprintf("%d", plan.Port.ValueInt64()))
+		}
 	case "CAA":
 		params.Set("value", oldValue)
 		params.Set("newValue", newValue)
 	case "SOA":
 		params.Set("primaryNameServer", newValue)
+	case "FWD":
+		params.Set("forwarder", oldValue)
+		params.Set("newForwarder", newValue)
+		if !state.Protocol.IsNull() && !state.Protocol.IsUnknown() {
+			params.Set("protocol", state.Protocol.ValueString())
+		}
+		if !plan.Protocol.IsNull() && !plan.Protocol.IsUnknown() {
+			params.Set("newProtocol", plan.Protocol.ValueString())
+		}
 	}
 
 	return params
@@ -505,15 +558,29 @@ func buildDeleteParams(state *dnsRecordResourceModel) url.Values {
 		if !state.Priority.IsNull() && !state.Priority.IsUnknown() {
 			params.Set("priority", fmt.Sprintf("%d", state.Priority.ValueInt64()))
 		}
+		if !state.Weight.IsNull() && !state.Weight.IsUnknown() {
+			params.Set("weight", fmt.Sprintf("%d", state.Weight.ValueInt64()))
+		}
+		if !state.Port.IsNull() && !state.Port.IsUnknown() {
+			params.Set("port", fmt.Sprintf("%d", state.Port.ValueInt64()))
+		}
 	case "CAA":
 		params.Set("value", value)
+	case "FWD":
+		params.Set("forwarder", value)
+		if !state.Protocol.IsNull() && !state.Protocol.IsUnknown() {
+			params.Set("protocol", state.Protocol.ValueString())
+		}
 	}
 
 	return params
 }
 
 // setValueParams sets the type-specific value parameters on an Add request.
-func setValueParams(params url.Values, recType, value string, priority types.Int64) {
+func setValueParams(params url.Values, plan *dnsRecordResourceModel) {
+	recType := plan.Type.ValueString()
+	value := plan.Value.ValueString()
+
 	switch recType {
 	case "A", "AAAA":
 		params.Set("ipAddress", value)
@@ -525,20 +592,31 @@ func setValueParams(params url.Values, recType, value string, priority types.Int
 		params.Set("ptrName", value)
 	case "MX":
 		params.Set("exchange", value)
-		if !priority.IsNull() && !priority.IsUnknown() {
-			params.Set("preference", fmt.Sprintf("%d", priority.ValueInt64()))
+		if !plan.Priority.IsNull() && !plan.Priority.IsUnknown() {
+			params.Set("preference", fmt.Sprintf("%d", plan.Priority.ValueInt64()))
 		}
 	case "TXT":
 		params.Set("text", value)
 	case "SRV":
 		params.Set("target", value)
-		if !priority.IsNull() && !priority.IsUnknown() {
-			params.Set("priority", fmt.Sprintf("%d", priority.ValueInt64()))
+		if !plan.Priority.IsNull() && !plan.Priority.IsUnknown() {
+			params.Set("priority", fmt.Sprintf("%d", plan.Priority.ValueInt64()))
+		}
+		if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
+			params.Set("weight", fmt.Sprintf("%d", plan.Weight.ValueInt64()))
+		}
+		if !plan.Port.IsNull() && !plan.Port.IsUnknown() {
+			params.Set("port", fmt.Sprintf("%d", plan.Port.ValueInt64()))
 		}
 	case "CAA":
 		params.Set("value", value)
 	case "SOA":
 		params.Set("primaryNameServer", value)
+	case "FWD":
+		params.Set("forwarder", value)
+		if !plan.Protocol.IsNull() && !plan.Protocol.IsUnknown() {
+			params.Set("protocol", plan.Protocol.ValueString())
+		}
 	}
 }
 

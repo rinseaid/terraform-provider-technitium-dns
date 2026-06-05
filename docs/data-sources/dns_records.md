@@ -30,7 +30,7 @@ data "technitium_dns_records" "web" {
 ### Optional
 
 - `domain` (String) Filter records by domain name. When omitted, all records in the zone are returned.
-- `type` (String) Filter records by DNS record type (A, AAAA, CNAME, MX, TXT, SRV, NS, PTR, CAA, SOA).
+- `type` (String) Filter records by DNS record type (A, AAAA, CNAME, MX, TXT, SRV, NS, PTR, CAA, SOA, FWD).
 
 ### Read-Only
 
@@ -44,7 +44,10 @@ Read-Only:
 - `comments` (String) Comments for the record.
 - `disabled` (Boolean) Whether the record is disabled.
 - `domain` (String) The fully qualified domain name of the record.
+- `port` (Number) Port number for SRV records.
 - `priority` (Number) Priority value for MX and SRV records.
+- `protocol` (String) Forwarding protocol for FWD records.
 - `ttl` (Number) Time to live in seconds.
 - `type` (String) The DNS record type.
 - `value` (String) The record value.
+- `weight` (Number) Weight value for SRV records.

@@ -37,6 +37,9 @@ type dnsRecordEntryModel struct {
 	Disabled types.Bool   `tfsdk:"disabled"`
 	Comments types.String `tfsdk:"comments"`
 	Priority types.Int64  `tfsdk:"priority"`
+	Weight   types.Int64  `tfsdk:"weight"`
+	Port     types.Int64  `tfsdk:"port"`
+	Protocol types.String `tfsdk:"protocol"`
 }
 
 func (d *dnsRecordsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -56,7 +59,7 @@ func (d *dnsRecordsDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Optional:    true,
 			},
 			"type": schema.StringAttribute{
-				Description: "Filter records by DNS record type (A, AAAA, CNAME, MX, TXT, SRV, NS, PTR, CAA, SOA).",
+				Description: "Filter records by DNS record type (A, AAAA, CNAME, MX, TXT, SRV, NS, PTR, CAA, SOA, FWD).",
 				Optional:    true,
 			},
 			"records": schema.ListNestedAttribute{
@@ -90,6 +93,18 @@ func (d *dnsRecordsDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"priority": schema.Int64Attribute{
 							Description: "Priority value for MX and SRV records.",
+							Computed:    true,
+						},
+						"weight": schema.Int64Attribute{
+							Description: "Weight value for SRV records.",
+							Computed:    true,
+						},
+						"port": schema.Int64Attribute{
+							Description: "Port number for SRV records.",
+							Computed:    true,
+						},
+						"protocol": schema.StringAttribute{
+							Description: "Forwarding protocol for FWD records.",
 							Computed:    true,
 						},
 					},
@@ -213,25 +228,32 @@ func (d *dnsRecordsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		}
 
 		rData, _ := rec["rData"].(map[string]interface{})
+		entry.Priority = types.Int64Null()
+		entry.Weight = types.Int64Null()
+		entry.Port = types.Int64Null()
+		entry.Protocol = types.StringNull()
+
 		if rData != nil {
 			switch recType {
 			case "MX":
 				if pref, ok := rData["preference"].(float64); ok && pref > 0 {
 					entry.Priority = types.Int64Value(int64(pref))
-				} else {
-					entry.Priority = types.Int64Null()
 				}
 			case "SRV":
-				if prio, ok := rData["priority"].(float64); ok && prio > 0 {
+				if prio, ok := rData["priority"].(float64); ok {
 					entry.Priority = types.Int64Value(int64(prio))
-				} else {
-					entry.Priority = types.Int64Null()
 				}
-			default:
-				entry.Priority = types.Int64Null()
+				if w, ok := rData["weight"].(float64); ok {
+					entry.Weight = types.Int64Value(int64(w))
+				}
+				if p, ok := rData["port"].(float64); ok {
+					entry.Port = types.Int64Value(int64(p))
+				}
+			case "FWD":
+				if proto, ok := rData["protocol"].(string); ok && proto != "" {
+					entry.Protocol = types.StringValue(proto)
+				}
 			}
-		} else {
-			entry.Priority = types.Int64Null()
 		}
 
 		entries = append(entries, entry)
