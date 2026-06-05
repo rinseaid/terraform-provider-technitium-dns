@@ -30,6 +30,13 @@ resource "technitium_dns_zone" "example" {
 ### Optional
 
 - `disabled` (Boolean) Whether the zone is disabled.
+- `notify` (String) Zone update notification policy. Valid values: None, ZoneNameServers, SpecifiedNameServers, BothZoneAndSpecifiedNameServers.
+- `notify_name_servers` (String) Comma-separated list of IP addresses to notify for zone updates.
+- `query_access` (String) Query access policy. Valid values: Deny, Allow, AllowOnlyPrivateNetworks, AllowOnlyZoneNameServers, UseSpecifiedNetworkACL, AllowZoneNameServersAndUseSpecifiedNetworkACL.
+- `update` (String) Dynamic update policy (RFC 2136). Valid values: Deny, Allow, AllowOnlyZoneNameServers, UseSpecifiedNetworkACL, AllowZoneNameServersAndUseSpecifiedNetworkACL.
+- `zone_transfer` (String) Zone transfer policy. Valid values: Deny, Allow, AllowOnlyZoneNameServers, UseSpecifiedNetworkACL, AllowZoneNameServersAndUseSpecifiedNetworkACL.
+- `zone_transfer_network_acl` (String) Comma-separated network ACL for zone transfers. Prefix with ! to deny.
+- `zone_transfer_tsig_key_names` (String) Comma-separated TSIG key names authorized for zone transfers.
 
 ### Read-Only
 

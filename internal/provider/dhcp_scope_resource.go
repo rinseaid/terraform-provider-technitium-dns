@@ -33,18 +33,26 @@ type dhcpScopeResource struct {
 }
 
 type dhcpScopeResourceModel struct {
-	Name             types.String `tfsdk:"name"`
-	Enabled          types.Bool   `tfsdk:"enabled"`
-	StartAddress     types.String `tfsdk:"start_address"`
-	EndAddress       types.String `tfsdk:"end_address"`
-	SubnetMask       types.String `tfsdk:"subnet_mask"`
-	RouterAddress    types.String `tfsdk:"router_address"`
-	DNSServers       types.List   `tfsdk:"dns_servers"`
-	DomainName       types.String `tfsdk:"domain_name"`
-	LeaseTime        types.Int64  `tfsdk:"lease_time"`
-	OfferDelay       types.Int64  `tfsdk:"offer_delay"`
-	PingCheck        types.Bool   `tfsdk:"ping_check"`
-	PingCheckTimeout types.Int64  `tfsdk:"ping_check_timeout"`
+	Name                         types.String `tfsdk:"name"`
+	Enabled                      types.Bool   `tfsdk:"enabled"`
+	StartAddress                 types.String `tfsdk:"start_address"`
+	EndAddress                   types.String `tfsdk:"end_address"`
+	SubnetMask                   types.String `tfsdk:"subnet_mask"`
+	RouterAddress                types.String `tfsdk:"router_address"`
+	DNSServers                   types.List   `tfsdk:"dns_servers"`
+	DomainName                   types.String `tfsdk:"domain_name"`
+	LeaseTime                    types.Int64  `tfsdk:"lease_time"`
+	OfferDelay                   types.Int64  `tfsdk:"offer_delay"`
+	PingCheck                    types.Bool   `tfsdk:"ping_check"`
+	PingCheckTimeout             types.Int64  `tfsdk:"ping_check_timeout"`
+	PingCheckRetries             types.Int64  `tfsdk:"ping_check_retries"`
+	DomainSearchList             types.List   `tfsdk:"domain_search_list"`
+	DNSUpdates                   types.Bool   `tfsdk:"dns_updates"`
+	DNSTTL                       types.Int64  `tfsdk:"dns_ttl"`
+	BootFileName                 types.String `tfsdk:"boot_file_name"`
+	TFTPServerAddresses          types.List   `tfsdk:"tftp_server_addresses"`
+	Exclusions                   types.String `tfsdk:"exclusions"`
+	IgnoreClientIdentifierOption types.Bool   `tfsdk:"ignore_client_identifier_option"`
 }
 
 func (r *dhcpScopeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -116,6 +124,40 @@ func (r *dhcpScopeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:    true,
 				Computed:    true,
 				Default:     int64default.StaticInt64(1000),
+			},
+			"ping_check_retries": schema.Int64Attribute{
+				Description: "Maximum number of ping requests to try before assigning an IP address.",
+				Optional:    true,
+			},
+			"domain_search_list": schema.ListAttribute{
+				Description: "List of domain names clients can use as search suffixes (DHCP option 119).",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
+			"dns_updates": schema.BoolAttribute{
+				Description: "Allow the DHCP server to automatically update forward and reverse DNS entries for clients.",
+				Optional:    true,
+			},
+			"dns_ttl": schema.Int64Attribute{
+				Description: "TTL value in seconds for auto-created forward and reverse DNS records.",
+				Optional:    true,
+			},
+			"boot_file_name": schema.StringAttribute{
+				Description: "Boot file name on the TFTP server for PXE clients (DHCP option 67).",
+				Optional:    true,
+			},
+			"tftp_server_addresses": schema.ListAttribute{
+				Description: "List of TFTP server addresses for PXE boot (DHCP option 150).",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
+			"exclusions": schema.StringAttribute{
+				Description: "IP address ranges to exclude from dynamic assignment. Pipe-delimited pairs: startIP|endIP|startIP|endIP.",
+				Optional:    true,
+			},
+			"ignore_client_identifier_option": schema.BoolAttribute{
+				Description: "Always use client MAC address as identifier instead of Client Identifier (option 61).",
+				Optional:    true,
 			},
 		},
 	}
@@ -307,6 +349,42 @@ func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScope
 		params.Set("pingCheckTimeout", fmt.Sprintf("%d", model.PingCheckTimeout.ValueInt64()))
 	}
 
+	if !model.PingCheckRetries.IsNull() && !model.PingCheckRetries.IsUnknown() {
+		params.Set("pingCheckRetries", fmt.Sprintf("%d", model.PingCheckRetries.ValueInt64()))
+	}
+
+	if !model.DomainSearchList.IsNull() && !model.DomainSearchList.IsUnknown() {
+		var domains []string
+		model.DomainSearchList.ElementsAs(ctx, &domains, false)
+		params.Set("domainSearchList", strings.Join(domains, ","))
+	}
+
+	if !model.DNSUpdates.IsNull() && !model.DNSUpdates.IsUnknown() {
+		params.Set("dnsUpdates", fmt.Sprintf("%t", model.DNSUpdates.ValueBool()))
+	}
+
+	if !model.DNSTTL.IsNull() && !model.DNSTTL.IsUnknown() {
+		params.Set("dnsTtl", fmt.Sprintf("%d", model.DNSTTL.ValueInt64()))
+	}
+
+	if !model.BootFileName.IsNull() && !model.BootFileName.IsUnknown() {
+		params.Set("bootFileName", model.BootFileName.ValueString())
+	}
+
+	if !model.TFTPServerAddresses.IsNull() && !model.TFTPServerAddresses.IsUnknown() {
+		var addrs []string
+		model.TFTPServerAddresses.ElementsAs(ctx, &addrs, false)
+		params.Set("tftpServerAddresses", strings.Join(addrs, ","))
+	}
+
+	if !model.Exclusions.IsNull() && !model.Exclusions.IsUnknown() {
+		params.Set("exclusions", model.Exclusions.ValueString())
+	}
+
+	if !model.IgnoreClientIdentifierOption.IsNull() && !model.IgnoreClientIdentifierOption.IsUnknown() {
+		params.Set("ignoreClientIdentifierOption", fmt.Sprintf("%t", model.IgnoreClientIdentifierOption.ValueBool()))
+	}
+
 	return params
 }
 
@@ -375,6 +453,68 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 		model.PingCheckTimeout = types.Int64Value(int64(v.(float64)))
 	} else if !model.PingCheckTimeout.IsNull() {
 		model.PingCheckTimeout = types.Int64Null()
+	}
+
+	if v, ok := scopeData["pingCheckRetries"]; ok && v != nil {
+		model.PingCheckRetries = types.Int64Value(int64(v.(float64)))
+	} else if !model.PingCheckRetries.IsNull() {
+		model.PingCheckRetries = types.Int64Null()
+	}
+
+	if v, ok := scopeData["domainSearchList"]; ok && v != nil {
+		items := v.([]interface{})
+		strs := make([]string, len(items))
+		for i, s := range items {
+			strs[i] = s.(string)
+		}
+		listVal, d := types.ListValueFrom(ctx, types.StringType, strs)
+		diags.Append(d...)
+		model.DomainSearchList = listVal
+	} else if !model.DomainSearchList.IsNull() {
+		model.DomainSearchList = types.ListNull(types.StringType)
+	}
+
+	if v, ok := scopeData["dnsUpdates"]; ok && v != nil {
+		model.DNSUpdates = types.BoolValue(v.(bool))
+	} else if !model.DNSUpdates.IsNull() {
+		model.DNSUpdates = types.BoolNull()
+	}
+
+	if v, ok := scopeData["dnsTtl"]; ok && v != nil {
+		model.DNSTTL = types.Int64Value(int64(v.(float64)))
+	} else if !model.DNSTTL.IsNull() {
+		model.DNSTTL = types.Int64Null()
+	}
+
+	if v, ok := scopeData["bootFileName"]; ok && v != nil && v != "" {
+		model.BootFileName = types.StringValue(v.(string))
+	} else if !model.BootFileName.IsNull() {
+		model.BootFileName = types.StringNull()
+	}
+
+	if v, ok := scopeData["tftpServerAddresses"]; ok && v != nil {
+		items := v.([]interface{})
+		strs := make([]string, len(items))
+		for i, s := range items {
+			strs[i] = s.(string)
+		}
+		listVal, d := types.ListValueFrom(ctx, types.StringType, strs)
+		diags.Append(d...)
+		model.TFTPServerAddresses = listVal
+	} else if !model.TFTPServerAddresses.IsNull() {
+		model.TFTPServerAddresses = types.ListNull(types.StringType)
+	}
+
+	if v, ok := scopeData["exclusions"]; ok && v != nil && v != "" {
+		model.Exclusions = types.StringValue(v.(string))
+	} else if !model.Exclusions.IsNull() {
+		model.Exclusions = types.StringNull()
+	}
+
+	if v, ok := scopeData["ignoreClientIdentifierOption"]; ok && v != nil {
+		model.IgnoreClientIdentifierOption = types.BoolValue(v.(bool))
+	} else if !model.IgnoreClientIdentifierOption.IsNull() {
+		model.IgnoreClientIdentifierOption = types.BoolNull()
 	}
 
 	// Determine enabled state from list endpoint (GetDHCPScope does not include it)

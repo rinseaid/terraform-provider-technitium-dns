@@ -66,6 +66,52 @@ func TestAccDNSZoneResource_updateDisabled(t *testing.T) {
 	})
 }
 
+func TestAccDNSZoneResource_zoneOptions(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDNSZoneDestroy("testzone-opts.example"),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name          = "testzone-opts.example"
+  type          = "Primary"
+  zone_transfer = "Deny"
+  notify        = "None"
+  query_access  = "AllowOnlyPrivateNetworks"
+  update        = "Deny"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "name", "testzone-opts.example"),
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "zone_transfer", "Deny"),
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "notify", "None"),
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "query_access", "AllowOnlyPrivateNetworks"),
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "update", "Deny"),
+				),
+			},
+			{
+				Config: `
+resource "technitium_dns_zone" "test" {
+  name          = "testzone-opts.example"
+  type          = "Primary"
+  zone_transfer = "AllowOnlyZoneNameServers"
+  notify        = "ZoneNameServers"
+  query_access  = "Allow"
+  update        = "AllowOnlyZoneNameServers"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "zone_transfer", "AllowOnlyZoneNameServers"),
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "notify", "ZoneNameServers"),
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "query_access", "Allow"),
+					resource.TestCheckResourceAttr("technitium_dns_zone.test", "update", "AllowOnlyZoneNameServers"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDNSZoneResource_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),

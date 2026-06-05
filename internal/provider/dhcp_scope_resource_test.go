@@ -59,6 +59,48 @@ func TestAccDHCPScopeResource_full(t *testing.T) {
 	})
 }
 
+func TestAccDHCPScopeResource_advancedFields(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDHCPScopeDestroy("test-advanced"),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+provider "technitium" {}
+
+resource "technitium_dhcp_scope" "test" {
+  name                            = "test-advanced"
+  start_address                   = "10.110.0.10"
+  end_address                     = "10.110.0.200"
+  subnet_mask                     = "255.255.255.0"
+  router_address                  = "10.110.0.1"
+  dns_servers                     = ["10.110.0.1"]
+  domain_name                     = "adv.local"
+  exclusions                      = "10.110.0.50|10.110.0.60|10.110.0.100|10.110.0.110"
+  domain_search_list              = ["adv.local", "search.local"]
+  dns_updates                     = true
+  dns_ttl                         = 300
+  ping_check                      = true
+  ping_check_retries              = 3
+  ignore_client_identifier_option = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_dhcp_scope.test", "name", "test-advanced"),
+					resource.TestCheckResourceAttr("technitium_dhcp_scope.test", "exclusions", "10.110.0.50|10.110.0.60|10.110.0.100|10.110.0.110"),
+					resource.TestCheckResourceAttr("technitium_dhcp_scope.test", "domain_search_list.#", "2"),
+					resource.TestCheckResourceAttr("technitium_dhcp_scope.test", "domain_search_list.0", "adv.local"),
+					resource.TestCheckResourceAttr("technitium_dhcp_scope.test", "domain_search_list.1", "search.local"),
+					resource.TestCheckResourceAttr("technitium_dhcp_scope.test", "dns_updates", "true"),
+					resource.TestCheckResourceAttr("technitium_dhcp_scope.test", "dns_ttl", "300"),
+					resource.TestCheckResourceAttr("technitium_dhcp_scope.test", "ping_check_retries", "3"),
+					resource.TestCheckResourceAttr("technitium_dhcp_scope.test", "ignore_client_identifier_option", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDHCPScopeResource_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),

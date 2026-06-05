@@ -34,10 +34,17 @@ type dnsZoneResource struct {
 }
 
 type dnsZoneResourceModel struct {
-	Name         types.String `tfsdk:"name"`
-	Type         types.String `tfsdk:"type"`
-	Disabled     types.Bool   `tfsdk:"disabled"`
-	DnssecStatus types.String `tfsdk:"dnssec_status"`
+	Name                     types.String `tfsdk:"name"`
+	Type                     types.String `tfsdk:"type"`
+	Disabled                 types.Bool   `tfsdk:"disabled"`
+	DnssecStatus             types.String `tfsdk:"dnssec_status"`
+	ZoneTransfer             types.String `tfsdk:"zone_transfer"`
+	Notify                   types.String `tfsdk:"notify"`
+	NotifyNameServers        types.String `tfsdk:"notify_name_servers"`
+	ZoneTransferNetworkACL   types.String `tfsdk:"zone_transfer_network_acl"`
+	ZoneTransferTSIGKeyNames types.String `tfsdk:"zone_transfer_tsig_key_names"`
+	QueryAccess              types.String `tfsdk:"query_access"`
+	Update                   types.String `tfsdk:"update"`
 }
 
 func (r *dnsZoneResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -77,6 +84,38 @@ func (r *dnsZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 			"dnssec_status": schema.StringAttribute{
 				Description: "The DNSSEC status of the zone.",
+				Computed:    true,
+			},
+			"zone_transfer": schema.StringAttribute{
+				Description: "Zone transfer policy. Valid values: Deny, Allow, AllowOnlyZoneNameServers, UseSpecifiedNetworkACL, AllowZoneNameServersAndUseSpecifiedNetworkACL.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"notify": schema.StringAttribute{
+				Description: "Zone update notification policy. Valid values: None, ZoneNameServers, SpecifiedNameServers, BothZoneAndSpecifiedNameServers.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"notify_name_servers": schema.StringAttribute{
+				Description: "Comma-separated list of IP addresses to notify for zone updates.",
+				Optional:    true,
+			},
+			"zone_transfer_network_acl": schema.StringAttribute{
+				Description: "Comma-separated network ACL for zone transfers. Prefix with ! to deny.",
+				Optional:    true,
+			},
+			"zone_transfer_tsig_key_names": schema.StringAttribute{
+				Description: "Comma-separated TSIG key names authorized for zone transfers.",
+				Optional:    true,
+			},
+			"query_access": schema.StringAttribute{
+				Description: "Query access policy. Valid values: Deny, Allow, AllowOnlyPrivateNetworks, AllowOnlyZoneNameServers, UseSpecifiedNetworkACL, AllowZoneNameServersAndUseSpecifiedNetworkACL.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"update": schema.StringAttribute{
+				Description: "Dynamic update policy (RFC 2136). Valid values: Deny, Allow, AllowOnlyZoneNameServers, UseSpecifiedNetworkACL, AllowZoneNameServersAndUseSpecifiedNetworkACL.",
+				Optional:    true,
 				Computed:    true,
 			},
 		},
@@ -120,6 +159,48 @@ func (r *dnsZoneResource) Create(ctx context.Context, req resource.CreateRequest
 			fmt.Sprintf("Could not create zone %q: %s", plan.Name.ValueString(), err),
 		)
 		return
+	}
+
+	// Set zone options if any were specified.
+	opts := url.Values{}
+	hasOpts := false
+	if !plan.ZoneTransfer.IsNull() && !plan.ZoneTransfer.IsUnknown() {
+		opts.Set("zoneTransfer", plan.ZoneTransfer.ValueString())
+		hasOpts = true
+	}
+	if !plan.Notify.IsNull() && !plan.Notify.IsUnknown() {
+		opts.Set("notify", plan.Notify.ValueString())
+		hasOpts = true
+	}
+	if !plan.NotifyNameServers.IsNull() && !plan.NotifyNameServers.IsUnknown() {
+		opts.Set("notifyNameServers", plan.NotifyNameServers.ValueString())
+		hasOpts = true
+	}
+	if !plan.ZoneTransferNetworkACL.IsNull() && !plan.ZoneTransferNetworkACL.IsUnknown() {
+		opts.Set("zoneTransferNetworkACL", plan.ZoneTransferNetworkACL.ValueString())
+		hasOpts = true
+	}
+	if !plan.ZoneTransferTSIGKeyNames.IsNull() && !plan.ZoneTransferTSIGKeyNames.IsUnknown() {
+		opts.Set("zoneTransferTsigKeyNames", plan.ZoneTransferTSIGKeyNames.ValueString())
+		hasOpts = true
+	}
+	if !plan.QueryAccess.IsNull() && !plan.QueryAccess.IsUnknown() {
+		opts.Set("queryAccess", plan.QueryAccess.ValueString())
+		hasOpts = true
+	}
+	if !plan.Update.IsNull() && !plan.Update.IsUnknown() {
+		opts.Set("update", plan.Update.ValueString())
+		hasOpts = true
+	}
+	if hasOpts {
+		_, err = r.client.SetZoneOptions(plan.Name.ValueString(), opts)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Setting DNS Zone Options",
+				fmt.Sprintf("Zone %q was created but options could not be set: %s", plan.Name.ValueString(), err),
+			)
+			return
+		}
 	}
 
 	// Zones are created enabled by default. Disable if requested.
@@ -178,15 +259,61 @@ func (r *dnsZoneResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	tflog.Debug(ctx, "Updating DNS zone", map[string]interface{}{"zone": zoneName})
 
-	// Update zone type if changed.
+	// Update zone options if any changed.
+	params := url.Values{}
+	needsUpdate := false
+
 	if !plan.Type.Equal(state.Type) {
-		params := url.Values{}
 		params.Set("type", plan.Type.ValueString())
+		needsUpdate = true
+	}
+	if !plan.ZoneTransfer.Equal(state.ZoneTransfer) && !plan.ZoneTransfer.IsNull() {
+		params.Set("zoneTransfer", plan.ZoneTransfer.ValueString())
+		needsUpdate = true
+	}
+	if !plan.Notify.Equal(state.Notify) && !plan.Notify.IsNull() {
+		params.Set("notify", plan.Notify.ValueString())
+		needsUpdate = true
+	}
+	if !plan.NotifyNameServers.Equal(state.NotifyNameServers) {
+		if !plan.NotifyNameServers.IsNull() {
+			params.Set("notifyNameServers", plan.NotifyNameServers.ValueString())
+		} else {
+			params.Set("notifyNameServers", "false")
+		}
+		needsUpdate = true
+	}
+	if !plan.ZoneTransferNetworkACL.Equal(state.ZoneTransferNetworkACL) {
+		if !plan.ZoneTransferNetworkACL.IsNull() {
+			params.Set("zoneTransferNetworkACL", plan.ZoneTransferNetworkACL.ValueString())
+		} else {
+			params.Set("zoneTransferNetworkACL", "false")
+		}
+		needsUpdate = true
+	}
+	if !plan.ZoneTransferTSIGKeyNames.Equal(state.ZoneTransferTSIGKeyNames) {
+		if !plan.ZoneTransferTSIGKeyNames.IsNull() {
+			params.Set("zoneTransferTsigKeyNames", plan.ZoneTransferTSIGKeyNames.ValueString())
+		} else {
+			params.Set("zoneTransferTsigKeyNames", "false")
+		}
+		needsUpdate = true
+	}
+	if !plan.QueryAccess.Equal(state.QueryAccess) && !plan.QueryAccess.IsNull() {
+		params.Set("queryAccess", plan.QueryAccess.ValueString())
+		needsUpdate = true
+	}
+	if !plan.Update.Equal(state.Update) && !plan.Update.IsNull() {
+		params.Set("update", plan.Update.ValueString())
+		needsUpdate = true
+	}
+
+	if needsUpdate {
 		_, err := r.client.SetZoneOptions(zoneName, params)
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Error Updating DNS Zone Type",
-				fmt.Sprintf("Could not update zone %q type: %s", zoneName, err),
+				"Error Updating DNS Zone Options",
+				fmt.Sprintf("Could not update zone %q options: %s", zoneName, err),
 			)
 			return
 		}
@@ -284,6 +411,42 @@ func (r *dnsZoneResource) readIntoModel(ctx context.Context, model *dnsZoneResou
 		model.DnssecStatus = types.StringValue(dnssecStatus)
 	} else {
 		model.DnssecStatus = types.StringValue("Unsigned")
+	}
+
+	if v, ok := response["zoneTransfer"].(string); ok {
+		model.ZoneTransfer = types.StringValue(v)
+	} else {
+		model.ZoneTransfer = types.StringValue("Deny")
+	}
+	if v, ok := response["notify"].(string); ok {
+		model.Notify = types.StringValue(v)
+	} else {
+		model.Notify = types.StringValue("None")
+	}
+	if v, ok := response["notifyNameServers"].(string); ok && v != "" {
+		model.NotifyNameServers = types.StringValue(v)
+	} else if !model.NotifyNameServers.IsNull() {
+		model.NotifyNameServers = types.StringNull()
+	}
+	if v, ok := response["zoneTransferNetworkACL"].(string); ok && v != "" {
+		model.ZoneTransferNetworkACL = types.StringValue(v)
+	} else if !model.ZoneTransferNetworkACL.IsNull() {
+		model.ZoneTransferNetworkACL = types.StringNull()
+	}
+	if v, ok := response["zoneTransferTsigKeyNames"].(string); ok && v != "" {
+		model.ZoneTransferTSIGKeyNames = types.StringValue(v)
+	} else if !model.ZoneTransferTSIGKeyNames.IsNull() {
+		model.ZoneTransferTSIGKeyNames = types.StringNull()
+	}
+	if v, ok := response["queryAccess"].(string); ok {
+		model.QueryAccess = types.StringValue(v)
+	} else {
+		model.QueryAccess = types.StringValue("Allow")
+	}
+	if v, ok := response["update"].(string); ok {
+		model.Update = types.StringValue(v)
+	} else {
+		model.Update = types.StringValue("Deny")
 	}
 
 	return

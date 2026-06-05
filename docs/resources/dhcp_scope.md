@@ -37,11 +37,19 @@ resource "technitium_dhcp_scope" "lan" {
 
 ### Optional
 
+- `boot_file_name` (String) Boot file name on the TFTP server for PXE clients (DHCP option 67).
 - `dns_servers` (List of String) List of DNS server IP addresses for clients.
+- `dns_ttl` (Number) TTL value in seconds for auto-created forward and reverse DNS records.
+- `dns_updates` (Boolean) Allow the DHCP server to automatically update forward and reverse DNS entries for clients.
 - `domain_name` (String) The domain name for this network.
+- `domain_search_list` (List of String) List of domain names clients can use as search suffixes (DHCP option 119).
 - `enabled` (Boolean) Whether the DHCP scope is enabled.
+- `exclusions` (String) IP address ranges to exclude from dynamic assignment. Pipe-delimited pairs: startIP|endIP|startIP|endIP.
+- `ignore_client_identifier_option` (Boolean) Always use client MAC address as identifier instead of Client Identifier (option 61).
 - `lease_time` (Number) Lease duration in seconds.
 - `offer_delay` (Number) Delay before sending DHCPOFFER in milliseconds.
 - `ping_check` (Boolean) Enable ping check before assigning an IP address.
+- `ping_check_retries` (Number) Maximum number of ping requests to try before assigning an IP address.
 - `ping_check_timeout` (Number) Timeout in milliseconds for ping check.
 - `router_address` (String) The default gateway IP address for clients.
+- `tftp_server_addresses` (List of String) List of TFTP server addresses for PXE boot (DHCP option 150).
