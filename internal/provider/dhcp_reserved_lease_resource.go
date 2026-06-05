@@ -32,10 +32,10 @@ type dhcpReservedLeaseResource struct {
 }
 
 type dhcpReservedLeaseResourceModel struct {
-	ID              types.String `tfsdk:"id"`
-	ScopeName       types.String `tfsdk:"scope_name"`
-	HardwareAddress types.String `tfsdk:"hardware_address"`
-	Address         types.String `tfsdk:"address"`
+	ID              types.String    `tfsdk:"id"`
+	ScopeName       types.String    `tfsdk:"scope_name"`
+	HardwareAddress macAddressValue `tfsdk:"hardware_address"`
+	Address         types.String    `tfsdk:"address"`
 	Hostname        types.String `tfsdk:"hostname"`
 	Comments        types.String `tfsdk:"comments"`
 }
@@ -281,7 +281,7 @@ func (r *dhcpReservedLeaseResource) UpgradeState(_ context.Context) map[int64]re
 				newState := dhcpReservedLeaseResourceModel{
 					ID:              oldState.ID,
 					ScopeName:       oldState.ScopeName,
-					HardwareAddress: oldState.HardwareAddress,
+					HardwareAddress: macAddressValue{StringValue: oldState.HardwareAddress},
 					Address:         oldState.Address,
 					Hostname:        oldState.Hostname,
 					Comments:        oldState.Comments,
