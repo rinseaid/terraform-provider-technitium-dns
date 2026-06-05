@@ -58,6 +58,46 @@ resource "technitium_tsig_key" "test" {
 	})
 }
 
+func TestAccTSIGKeyResource_update(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckTSIGKeyDestroy("test-key-update."),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+provider "technitium" {}
+
+resource "technitium_tsig_key" "test" {
+  key_name  = "test-key-update."
+  algorithm = "hmac-sha256"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_tsig_key.test", "key_name", "test-key-update."),
+					resource.TestCheckResourceAttr("technitium_tsig_key.test", "algorithm", "hmac-sha256"),
+					resource.TestCheckResourceAttrSet("technitium_tsig_key.test", "shared_secret"),
+				),
+			},
+			{
+				Config: `
+provider "technitium" {}
+
+resource "technitium_tsig_key" "test" {
+  key_name      = "test-key-update."
+  algorithm     = "hmac-sha256"
+  shared_secret = "bmV3c2VjcmV0a2V5MTIzNDU2Nzg5MDEyMzQ1Njc="
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_tsig_key.test", "key_name", "test-key-update."),
+					resource.TestCheckResourceAttr("technitium_tsig_key.test", "algorithm", "hmac-sha256"),
+					resource.TestCheckResourceAttr("technitium_tsig_key.test", "shared_secret", "bmV3c2VjcmV0a2V5MTIzNDU2Nzg5MDEyMzQ1Njc="),
+				),
+			},
+		},
+	})
+}
+
 func TestAccTSIGKeyResource_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),

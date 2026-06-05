@@ -39,12 +39,36 @@ resource "technitium_dns_record" "sip" {
   port     = 5060
 }
 
+resource "technitium_dns_record" "caa" {
+  zone   = technitium_dns_zone.example.name
+  domain = "example.com"
+  type   = "CAA"
+  value  = "letsencrypt.org"
+  flags  = 0
+  tag    = "issue"
+}
+
 resource "technitium_dns_record" "forwarder" {
-  zone     = technitium_dns_zone.example.name
-  domain   = "example.com"
-  type     = "FWD"
-  value    = "1.1.1.1"
-  protocol = "Udp"
+  zone               = technitium_dns_zone.example.name
+  domain             = "example.com"
+  type               = "FWD"
+  value              = "1.1.1.1"
+  protocol           = "Udp"
+  forwarder_priority = 0
+}
+
+resource "technitium_dns_record" "forwarder_with_proxy" {
+  zone              = technitium_dns_zone.example.name
+  domain            = "internal.example.com"
+  type              = "FWD"
+  value             = "10.0.0.53"
+  protocol          = "Tcp"
+  dnssec_validation = true
+  proxy_type        = "Socks5"
+  proxy_address     = "proxy.example.com"
+  proxy_port        = 1080
+  proxy_username    = "user"
+  proxy_password    = "pass"
 }
 ```
 
@@ -62,9 +86,18 @@ resource "technitium_dns_record" "forwarder" {
 
 - `comments` (String) Comments for the record.
 - `disabled` (Boolean) Whether the record is disabled.
+- `dnssec_validation` (Boolean) Enable DNSSEC validation for FWD records.
+- `flags` (Number) Flags value for CAA records.
+- `forwarder_priority` (Number) Priority for FWD records. Lower values are queried first; equal values are queried concurrently.
 - `port` (Number) Port number for SRV records.
 - `priority` (Number) Priority value for MX and SRV records.
 - `protocol` (String) Forwarding protocol for FWD records. Valid values: Udp, Tcp, Tls, Https, Quic.
+- `proxy_address` (String) Proxy server address for FWD records.
+- `proxy_password` (String, Sensitive) Proxy server password for FWD records.
+- `proxy_port` (Number) Proxy server port for FWD records.
+- `proxy_type` (String) Proxy type for FWD records. Valid values: NoProxy, DefaultProxy, Http, Socks5.
+- `proxy_username` (String, Sensitive) Proxy server username for FWD records.
+- `tag` (String) Tag value for CAA records (e.g. issue, issuewild, iodef).
 - `ttl` (Number) Time to live in seconds.
 - `weight` (Number) Weight value for SRV records.
 

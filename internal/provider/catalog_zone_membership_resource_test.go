@@ -21,6 +21,70 @@ func TestAccCatalogZoneMembershipResource_basic(t *testing.T) {
 	})
 }
 
+func TestAccCatalogZoneMembershipResource_update(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+provider "technitium" {}
+
+resource "technitium_dns_zone" "catalog1" {
+  name = "test-catalog-upd1.example"
+  type = "Catalog"
+}
+
+resource "technitium_dns_zone" "catalog2" {
+  name = "test-catalog-upd2.example"
+  type = "Catalog"
+}
+
+resource "technitium_dns_zone" "member" {
+  name = "test-member-upd.example"
+  type = "Primary"
+}
+
+resource "technitium_catalog_zone_membership" "test" {
+  zone         = technitium_dns_zone.member.name
+  catalog_zone = technitium_dns_zone.catalog1.name
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_catalog_zone_membership.test", "catalog_zone", "test-catalog-upd1.example"),
+				),
+			},
+			{
+				Config: `
+provider "technitium" {}
+
+resource "technitium_dns_zone" "catalog1" {
+  name = "test-catalog-upd1.example"
+  type = "Catalog"
+}
+
+resource "technitium_dns_zone" "catalog2" {
+  name = "test-catalog-upd2.example"
+  type = "Catalog"
+}
+
+resource "technitium_dns_zone" "member" {
+  name = "test-member-upd.example"
+  type = "Primary"
+}
+
+resource "technitium_catalog_zone_membership" "test" {
+  zone         = technitium_dns_zone.member.name
+  catalog_zone = technitium_dns_zone.catalog2.name
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("technitium_catalog_zone_membership.test", "catalog_zone", "test-catalog-upd2.example"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccCatalogZoneMembershipResource_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),

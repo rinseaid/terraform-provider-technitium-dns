@@ -7,4 +7,6 @@ resource "technitium_dhcp_scope" "lan" {
   dns_servers    = ["192.168.1.1"]
   domain_name    = "home.local"
   lease_time     = 86400
+  ntp_servers    = ["192.168.1.1"]
+  static_routes  = "172.16.0.0|255.255.255.0|192.168.1.2"
 }

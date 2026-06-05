@@ -22,6 +22,8 @@ resource "technitium_dhcp_scope" "lan" {
   dns_servers    = ["192.168.1.1"]
   domain_name    = "home.local"
   lease_time     = 86400
+  ntp_servers    = ["192.168.1.1"]
+  static_routes  = "172.16.0.0|255.255.255.0|192.168.1.2"
 }
 ```
 
@@ -47,9 +49,12 @@ resource "technitium_dhcp_scope" "lan" {
 - `exclusions` (String) IP address ranges to exclude from dynamic assignment. Pipe-delimited pairs: startIP|endIP|startIP|endIP.
 - `ignore_client_identifier_option` (Boolean) Always use client MAC address as identifier instead of Client Identifier (option 61).
 - `lease_time` (Number) Lease duration in seconds.
+- `ntp_servers` (List of String) List of NTP server IP addresses for clients (DHCP option 42).
 - `offer_delay` (Number) Delay before sending DHCPOFFER in milliseconds.
 - `ping_check` (Boolean) Enable ping check before assigning an IP address.
 - `ping_check_retries` (Number) Maximum number of ping requests to try before assigning an IP address.
 - `ping_check_timeout` (Number) Timeout in milliseconds for ping check.
 - `router_address` (String) The default gateway IP address for clients.
+- `static_routes` (String) Pipe-delimited static routes: destination|subnetMask|gateway|destination|subnetMask|gateway (DHCP option 121).
 - `tftp_server_addresses` (List of String) List of TFTP server addresses for PXE boot (DHCP option 150).
+- `vendor_info` (String) Pipe-delimited vendor information: classIdentifier|specificInfo|classIdentifier|specificInfo.

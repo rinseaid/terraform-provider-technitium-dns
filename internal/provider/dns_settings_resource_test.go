@@ -88,6 +88,26 @@ resource "technitium_dns_settings" "test" {
 	})
 }
 
+func TestAccDNSSettingsDataSource_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+provider "technitium" {}
+
+data "technitium_dns_settings" "test" {}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.technitium_dns_settings.test", "dns_server_domain"),
+					resource.TestCheckResourceAttrSet("data.technitium_dns_settings.test", "recursion"),
+					resource.TestCheckResourceAttrSet("data.technitium_dns_settings.test", "enable_blocking"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDNSSettingsResource_forwarders(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),

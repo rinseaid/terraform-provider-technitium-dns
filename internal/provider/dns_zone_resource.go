@@ -34,17 +34,20 @@ type dnsZoneResource struct {
 }
 
 type dnsZoneResourceModel struct {
-	Name                     types.String `tfsdk:"name"`
-	Type                     types.String `tfsdk:"type"`
-	Disabled                 types.Bool   `tfsdk:"disabled"`
-	DnssecStatus             types.String `tfsdk:"dnssec_status"`
-	ZoneTransfer             types.String `tfsdk:"zone_transfer"`
-	Notify                   types.String `tfsdk:"notify"`
-	NotifyNameServers        types.String `tfsdk:"notify_name_servers"`
-	ZoneTransferNetworkACL   types.String `tfsdk:"zone_transfer_network_acl"`
-	ZoneTransferTSIGKeyNames types.String `tfsdk:"zone_transfer_tsig_key_names"`
-	QueryAccess              types.String `tfsdk:"query_access"`
-	Update                   types.String `tfsdk:"update"`
+	Name                        types.String `tfsdk:"name"`
+	Type                        types.String `tfsdk:"type"`
+	Disabled                    types.Bool   `tfsdk:"disabled"`
+	DnssecStatus                types.String `tfsdk:"dnssec_status"`
+	ZoneTransfer                types.String `tfsdk:"zone_transfer"`
+	Notify                      types.String `tfsdk:"notify"`
+	NotifyNameServers           types.String `tfsdk:"notify_name_servers"`
+	ZoneTransferNetworkACL      types.String `tfsdk:"zone_transfer_network_acl"`
+	ZoneTransferTSIGKeyNames    types.String `tfsdk:"zone_transfer_tsig_key_names"`
+	QueryAccess                 types.String `tfsdk:"query_access"`
+	Update                      types.String `tfsdk:"update"`
+	PrimaryNameServerAddresses  types.String `tfsdk:"primary_name_server_addresses"`
+	PrimaryZoneTransferProtocol types.String `tfsdk:"primary_zone_transfer_protocol"`
+	PrimaryZoneTransferTSIGKey  types.String `tfsdk:"primary_zone_transfer_tsig_key"`
 }
 
 func (r *dnsZoneResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -73,6 +76,7 @@ func (r *dnsZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						"Forwarder",
 						"SecondaryForwarder",
 						"Catalog",
+						"SecondaryCatalog",
 					),
 				},
 			},
@@ -118,6 +122,21 @@ func (r *dnsZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Optional:    true,
 				Computed:    true,
 			},
+			"primary_name_server_addresses": schema.StringAttribute{
+				Description: "Comma-separated primary name server addresses for Secondary, SecondaryForwarder, SecondaryCatalog, and Stub zones.",
+				Optional:    true,
+			},
+			"primary_zone_transfer_protocol": schema.StringAttribute{
+				Description: "Zone transfer protocol for Secondary, SecondaryForwarder, and SecondaryCatalog zones. Valid values: Tcp, Tls, Quic.",
+				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("Tcp", "Tls", "Quic"),
+				},
+			},
+			"primary_zone_transfer_tsig_key": schema.StringAttribute{
+				Description: "TSIG key name for zone transfers on Secondary, SecondaryForwarder, and SecondaryCatalog zones.",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -153,12 +172,27 @@ func (r *dnsZoneResource) Create(ctx context.Context, req resource.CreateRequest
 	})
 
 	var createExtra url.Values
-	if plan.Type.ValueString() == "Forwarder" || plan.Type.ValueString() == "SecondaryForwarder" {
+	zoneType := plan.Type.ValueString()
+	if zoneType == "Forwarder" || zoneType == "SecondaryForwarder" {
 		createExtra = url.Values{}
 		createExtra.Set("forwarder", "this-server")
 		createExtra.Set("protocol", "Udp")
 	}
-	_, err := r.client.CreateZone(plan.Name.ValueString(), plan.Type.ValueString(), createExtra)
+	if zoneType == "Secondary" || zoneType == "SecondaryForwarder" || zoneType == "SecondaryCatalog" || zoneType == "Stub" {
+		if createExtra == nil {
+			createExtra = url.Values{}
+		}
+		if !plan.PrimaryNameServerAddresses.IsNull() && !plan.PrimaryNameServerAddresses.IsUnknown() {
+			createExtra.Set("primaryNameServerAddresses", plan.PrimaryNameServerAddresses.ValueString())
+		}
+		if !plan.PrimaryZoneTransferProtocol.IsNull() && !plan.PrimaryZoneTransferProtocol.IsUnknown() {
+			createExtra.Set("zoneTransferProtocol", plan.PrimaryZoneTransferProtocol.ValueString())
+		}
+		if !plan.PrimaryZoneTransferTSIGKey.IsNull() && !plan.PrimaryZoneTransferTSIGKey.IsUnknown() {
+			createExtra.Set("tsigKeyName", plan.PrimaryZoneTransferTSIGKey.ValueString())
+		}
+	}
+	_, err := r.client.CreateZone(plan.Name.ValueString(), zoneType, createExtra)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating DNS Zone",
@@ -313,6 +347,28 @@ func (r *dnsZoneResource) Update(ctx context.Context, req resource.UpdateRequest
 		params.Set("update", plan.Update.ValueString())
 		needsUpdate = true
 	}
+	if !plan.PrimaryNameServerAddresses.Equal(state.PrimaryNameServerAddresses) {
+		if !plan.PrimaryNameServerAddresses.IsNull() {
+			params.Set("primaryNameServerAddresses", plan.PrimaryNameServerAddresses.ValueString())
+		} else {
+			params.Set("primaryNameServerAddresses", "false")
+		}
+		needsUpdate = true
+	}
+	if !plan.PrimaryZoneTransferProtocol.Equal(state.PrimaryZoneTransferProtocol) {
+		if !plan.PrimaryZoneTransferProtocol.IsNull() {
+			params.Set("primaryZoneTransferProtocol", plan.PrimaryZoneTransferProtocol.ValueString())
+		}
+		needsUpdate = true
+	}
+	if !plan.PrimaryZoneTransferTSIGKey.Equal(state.PrimaryZoneTransferTSIGKey) {
+		if !plan.PrimaryZoneTransferTSIGKey.IsNull() {
+			params.Set("primaryZoneTransferTsigKeyName", plan.PrimaryZoneTransferTSIGKey.ValueString())
+		} else {
+			params.Set("primaryZoneTransferTsigKeyName", "false")
+		}
+		needsUpdate = true
+	}
 
 	if needsUpdate {
 		_, err := r.client.SetZoneOptions(zoneName, params)
@@ -453,6 +509,22 @@ func (r *dnsZoneResource) readIntoModel(ctx context.Context, model *dnsZoneResou
 		model.Update = types.StringValue(v)
 	} else {
 		model.Update = types.StringValue("Deny")
+	}
+
+	if v := joinStringList(response["primaryNameServerAddresses"]); v != "" {
+		model.PrimaryNameServerAddresses = types.StringValue(v)
+	} else if !model.PrimaryNameServerAddresses.IsNull() {
+		model.PrimaryNameServerAddresses = types.StringNull()
+	}
+	if v, ok := response["primaryZoneTransferProtocol"].(string); ok && v != "" {
+		model.PrimaryZoneTransferProtocol = types.StringValue(v)
+	} else if !model.PrimaryZoneTransferProtocol.IsNull() {
+		model.PrimaryZoneTransferProtocol = types.StringNull()
+	}
+	if v, ok := response["primaryZoneTransferTsigKeyName"].(string); ok && v != "" {
+		model.PrimaryZoneTransferTSIGKey = types.StringValue(v)
+	} else if !model.PrimaryZoneTransferTSIGKey.IsNull() {
+		model.PrimaryZoneTransferTSIGKey = types.StringNull()
 	}
 
 	return

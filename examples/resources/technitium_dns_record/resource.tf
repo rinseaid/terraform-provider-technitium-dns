@@ -24,10 +24,34 @@ resource "technitium_dns_record" "sip" {
   port     = 5060
 }
 
+resource "technitium_dns_record" "caa" {
+  zone   = technitium_dns_zone.example.name
+  domain = "example.com"
+  type   = "CAA"
+  value  = "letsencrypt.org"
+  flags  = 0
+  tag    = "issue"
+}
+
 resource "technitium_dns_record" "forwarder" {
-  zone     = technitium_dns_zone.example.name
-  domain   = "example.com"
-  type     = "FWD"
-  value    = "1.1.1.1"
-  protocol = "Udp"
+  zone               = technitium_dns_zone.example.name
+  domain             = "example.com"
+  type               = "FWD"
+  value              = "1.1.1.1"
+  protocol           = "Udp"
+  forwarder_priority = 0
+}
+
+resource "technitium_dns_record" "forwarder_with_proxy" {
+  zone              = technitium_dns_zone.example.name
+  domain            = "internal.example.com"
+  type              = "FWD"
+  value             = "10.0.0.53"
+  protocol          = "Tcp"
+  dnssec_validation = true
+  proxy_type        = "Socks5"
+  proxy_address     = "proxy.example.com"
+  proxy_port        = 1080
+  proxy_username    = "user"
+  proxy_password    = "pass"
 }

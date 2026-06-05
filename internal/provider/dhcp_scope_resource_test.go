@@ -166,6 +166,42 @@ func TestAccDHCPScopesDataSource_basic(t *testing.T) {
 	})
 }
 
+func TestAccDHCPLeasesDataSource_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckDHCPScopeDestroy("test-leases-ds"),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+provider "technitium" {}
+
+resource "technitium_dhcp_scope" "test" {
+  name           = "test-leases-ds"
+  start_address  = "10.105.0.10"
+  end_address    = "10.105.0.50"
+  subnet_mask    = "255.255.255.0"
+  router_address = "10.105.0.1"
+}
+
+resource "technitium_dhcp_reserved_lease" "test" {
+  scope_name       = technitium_dhcp_scope.test.name
+  hardware_address = "00:11:22:33:44:55"
+  address          = "10.105.0.20"
+}
+
+data "technitium_dhcp_leases" "test" {
+  scope_name = technitium_dhcp_scope.test.name
+  depends_on = [technitium_dhcp_reserved_lease.test]
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.technitium_dhcp_leases.test", "leases.#"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDHCPScopeDestroy(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		c, err := testAccClientFromEnv()

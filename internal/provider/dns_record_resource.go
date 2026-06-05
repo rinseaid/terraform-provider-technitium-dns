@@ -35,18 +35,27 @@ type dnsRecordResource struct {
 }
 
 type dnsRecordResourceModel struct {
-	ID       types.String `tfsdk:"id"`
-	Zone     types.String `tfsdk:"zone"`
-	Domain   types.String `tfsdk:"domain"`
-	Type     types.String `tfsdk:"type"`
-	Value    types.String `tfsdk:"value"`
-	TTL      types.Int64  `tfsdk:"ttl"`
-	Disabled types.Bool   `tfsdk:"disabled"`
-	Comments types.String `tfsdk:"comments"`
-	Priority types.Int64  `tfsdk:"priority"`
-	Weight   types.Int64  `tfsdk:"weight"`
-	Port     types.Int64  `tfsdk:"port"`
-	Protocol types.String `tfsdk:"protocol"`
+	ID               types.String `tfsdk:"id"`
+	Zone             types.String `tfsdk:"zone"`
+	Domain           types.String `tfsdk:"domain"`
+	Type             types.String `tfsdk:"type"`
+	Value            types.String `tfsdk:"value"`
+	TTL              types.Int64  `tfsdk:"ttl"`
+	Disabled         types.Bool   `tfsdk:"disabled"`
+	Comments         types.String `tfsdk:"comments"`
+	Priority         types.Int64  `tfsdk:"priority"`
+	Weight           types.Int64  `tfsdk:"weight"`
+	Port             types.Int64  `tfsdk:"port"`
+	Protocol         types.String `tfsdk:"protocol"`
+	Flags            types.Int64  `tfsdk:"flags"`
+	Tag              types.String `tfsdk:"tag"`
+	ForwarderPriority types.Int64  `tfsdk:"forwarder_priority"`
+	DnssecValidation  types.Bool   `tfsdk:"dnssec_validation"`
+	ProxyType         types.String `tfsdk:"proxy_type"`
+	ProxyAddress      types.String `tfsdk:"proxy_address"`
+	ProxyPort         types.Int64  `tfsdk:"proxy_port"`
+	ProxyUsername     types.String `tfsdk:"proxy_username"`
+	ProxyPassword     types.String `tfsdk:"proxy_password"`
 }
 
 func (r *dnsRecordResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -110,14 +119,17 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"priority": schema.Int64Attribute{
 				Description: "Priority value for MX and SRV records.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"weight": schema.Int64Attribute{
 				Description: "Weight value for SRV records.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"port": schema.Int64Attribute{
 				Description: "Port number for SRV records.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"protocol": schema.StringAttribute{
 				Description: "Forwarding protocol for FWD records. Valid values: Udp, Tcp, Tls, Https, Quic.",
@@ -125,6 +137,50 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Validators: []validator.String{
 					stringvalidator.OneOf("Udp", "Tcp", "Tls", "Https", "Quic"),
 				},
+			},
+			"flags": schema.Int64Attribute{
+				Description: "Flags value for CAA records.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"tag": schema.StringAttribute{
+				Description: "Tag value for CAA records (e.g. issue, issuewild, iodef).",
+				Optional:    true,
+				Computed:    true,
+			},
+			"forwarder_priority": schema.Int64Attribute{
+				Description: "Priority for FWD records. Lower values are queried first; equal values are queried concurrently.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"dnssec_validation": schema.BoolAttribute{
+				Description: "Enable DNSSEC validation for FWD records.",
+				Optional:    true,
+			},
+			"proxy_type": schema.StringAttribute{
+				Description: "Proxy type for FWD records. Valid values: NoProxy, DefaultProxy, Http, Socks5.",
+				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("NoProxy", "DefaultProxy", "Http", "Socks5"),
+				},
+			},
+			"proxy_address": schema.StringAttribute{
+				Description: "Proxy server address for FWD records.",
+				Optional:    true,
+			},
+			"proxy_port": schema.Int64Attribute{
+				Description: "Proxy server port for FWD records.",
+				Optional:    true,
+			},
+			"proxy_username": schema.StringAttribute{
+				Description: "Proxy server username for FWD records.",
+				Optional:    true,
+				Sensitive:   true,
+			},
+			"proxy_password": schema.StringAttribute{
+				Description: "Proxy server password for FWD records.",
+				Optional:    true,
+				Sensitive:   true,
 			},
 		},
 	}
@@ -361,11 +417,11 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 	if rData != nil {
 		switch recType {
 		case "MX":
-			if pref, ok := rData["preference"].(float64); ok && (pref > 0 || !model.Priority.IsNull()) {
+			if pref, ok := rData["preference"].(float64); ok {
 				model.Priority = types.Int64Value(int64(pref))
 			}
 		case "SRV":
-			if prio, ok := rData["priority"].(float64); ok && (prio > 0 || !model.Priority.IsNull()) {
+			if prio, ok := rData["priority"].(float64); ok {
 				model.Priority = types.Int64Value(int64(prio))
 			}
 			if w, ok := rData["weight"].(float64); ok {
@@ -374,9 +430,45 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 			if p, ok := rData["port"].(float64); ok {
 				model.Port = types.Int64Value(int64(p))
 			}
+		case "CAA":
+			if f, ok := rData["flags"].(float64); ok {
+				model.Flags = types.Int64Value(int64(f))
+			}
+			if tag, ok := rData["tag"].(string); ok && tag != "" {
+				model.Tag = types.StringValue(tag)
+			} else if !model.Tag.IsNull() {
+				model.Tag = types.StringNull()
+			}
 		case "FWD":
 			if proto, ok := rData["protocol"].(string); ok && proto != "" {
 				model.Protocol = types.StringValue(proto)
+			}
+			if fp, ok := rData["forwarderPriority"].(float64); ok {
+				model.ForwarderPriority = types.Int64Value(int64(fp))
+			}
+			if dv, ok := rData["dnssecValidation"].(bool); ok && (dv || !model.DnssecValidation.IsNull()) {
+				model.DnssecValidation = types.BoolValue(dv)
+			}
+			if pt, ok := rData["proxyType"].(string); ok && pt != "" && (pt != "DefaultProxy" || !model.ProxyType.IsNull()) {
+				model.ProxyType = types.StringValue(pt)
+			}
+			if pa, ok := rData["proxyAddress"].(string); ok && pa != "" {
+				model.ProxyAddress = types.StringValue(pa)
+			} else if !model.ProxyAddress.IsNull() {
+				model.ProxyAddress = types.StringNull()
+			}
+			if pp, ok := rData["proxyPort"].(float64); ok && (pp > 0 || !model.ProxyPort.IsNull()) {
+				model.ProxyPort = types.Int64Value(int64(pp))
+			}
+			if pu, ok := rData["proxyUsername"].(string); ok && pu != "" {
+				model.ProxyUsername = types.StringValue(pu)
+			} else if !model.ProxyUsername.IsNull() {
+				model.ProxyUsername = types.StringNull()
+			}
+			if pp, ok := rData["proxyPassword"].(string); ok && pp != "" {
+				model.ProxyPassword = types.StringValue(pp)
+			} else if !model.ProxyPassword.IsNull() {
+				model.ProxyPassword = types.StringNull()
 			}
 		}
 	}
@@ -513,6 +605,18 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 	case "CAA":
 		params.Set("value", oldValue)
 		params.Set("newValue", newValue)
+		if !state.Flags.IsNull() && !state.Flags.IsUnknown() {
+			params.Set("flags", fmt.Sprintf("%d", state.Flags.ValueInt64()))
+		}
+		if !plan.Flags.IsNull() && !plan.Flags.IsUnknown() {
+			params.Set("newFlags", fmt.Sprintf("%d", plan.Flags.ValueInt64()))
+		}
+		if !state.Tag.IsNull() && !state.Tag.IsUnknown() {
+			params.Set("tag", state.Tag.ValueString())
+		}
+		if !plan.Tag.IsNull() && !plan.Tag.IsUnknown() {
+			params.Set("newTag", plan.Tag.ValueString())
+		}
 	case "SOA":
 		params.Set("primaryNameServer", newValue)
 	case "FWD":
@@ -523,6 +627,27 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		}
 		if !plan.Protocol.IsNull() && !plan.Protocol.IsUnknown() {
 			params.Set("newProtocol", plan.Protocol.ValueString())
+		}
+		if !state.ForwarderPriority.IsNull() && !state.ForwarderPriority.IsUnknown() {
+			params.Set("forwarderPriority", fmt.Sprintf("%d", state.ForwarderPriority.ValueInt64()))
+		}
+		if !plan.DnssecValidation.IsNull() && !plan.DnssecValidation.IsUnknown() {
+			params.Set("dnssecValidation", fmt.Sprintf("%t", plan.DnssecValidation.ValueBool()))
+		}
+		if !plan.ProxyType.IsNull() && !plan.ProxyType.IsUnknown() {
+			params.Set("proxyType", plan.ProxyType.ValueString())
+		}
+		if !plan.ProxyAddress.IsNull() && !plan.ProxyAddress.IsUnknown() {
+			params.Set("proxyAddress", plan.ProxyAddress.ValueString())
+		}
+		if !plan.ProxyPort.IsNull() && !plan.ProxyPort.IsUnknown() {
+			params.Set("proxyPort", fmt.Sprintf("%d", plan.ProxyPort.ValueInt64()))
+		}
+		if !plan.ProxyUsername.IsNull() && !plan.ProxyUsername.IsUnknown() {
+			params.Set("proxyUsername", plan.ProxyUsername.ValueString())
+		}
+		if !plan.ProxyPassword.IsNull() && !plan.ProxyPassword.IsUnknown() {
+			params.Set("proxyPassword", plan.ProxyPassword.ValueString())
 		}
 	}
 
@@ -566,6 +691,12 @@ func buildDeleteParams(state *dnsRecordResourceModel) url.Values {
 		}
 	case "CAA":
 		params.Set("value", value)
+		if !state.Flags.IsNull() && !state.Flags.IsUnknown() {
+			params.Set("flags", fmt.Sprintf("%d", state.Flags.ValueInt64()))
+		}
+		if !state.Tag.IsNull() && !state.Tag.IsUnknown() {
+			params.Set("tag", state.Tag.ValueString())
+		}
 	case "FWD":
 		params.Set("forwarder", value)
 		if !state.Protocol.IsNull() && !state.Protocol.IsUnknown() {
@@ -610,12 +741,39 @@ func setValueParams(params url.Values, plan *dnsRecordResourceModel) {
 		}
 	case "CAA":
 		params.Set("value", value)
+		if !plan.Flags.IsNull() && !plan.Flags.IsUnknown() {
+			params.Set("flags", fmt.Sprintf("%d", plan.Flags.ValueInt64()))
+		}
+		if !plan.Tag.IsNull() && !plan.Tag.IsUnknown() {
+			params.Set("tag", plan.Tag.ValueString())
+		}
 	case "SOA":
 		params.Set("primaryNameServer", value)
 	case "FWD":
 		params.Set("forwarder", value)
 		if !plan.Protocol.IsNull() && !plan.Protocol.IsUnknown() {
 			params.Set("protocol", plan.Protocol.ValueString())
+		}
+		if !plan.ForwarderPriority.IsNull() && !plan.ForwarderPriority.IsUnknown() {
+			params.Set("forwarderPriority", fmt.Sprintf("%d", plan.ForwarderPriority.ValueInt64()))
+		}
+		if !plan.DnssecValidation.IsNull() && !plan.DnssecValidation.IsUnknown() {
+			params.Set("dnssecValidation", fmt.Sprintf("%t", plan.DnssecValidation.ValueBool()))
+		}
+		if !plan.ProxyType.IsNull() && !plan.ProxyType.IsUnknown() {
+			params.Set("proxyType", plan.ProxyType.ValueString())
+		}
+		if !plan.ProxyAddress.IsNull() && !plan.ProxyAddress.IsUnknown() {
+			params.Set("proxyAddress", plan.ProxyAddress.ValueString())
+		}
+		if !plan.ProxyPort.IsNull() && !plan.ProxyPort.IsUnknown() {
+			params.Set("proxyPort", fmt.Sprintf("%d", plan.ProxyPort.ValueInt64()))
+		}
+		if !plan.ProxyUsername.IsNull() && !plan.ProxyUsername.IsUnknown() {
+			params.Set("proxyUsername", plan.ProxyUsername.ValueString())
+		}
+		if !plan.ProxyPassword.IsNull() && !plan.ProxyPassword.IsUnknown() {
+			params.Set("proxyPassword", plan.ProxyPassword.ValueString())
 		}
 	}
 }

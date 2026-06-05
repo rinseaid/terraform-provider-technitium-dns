@@ -52,6 +52,9 @@ type dhcpScopeResourceModel struct {
 	BootFileName                 types.String `tfsdk:"boot_file_name"`
 	TFTPServerAddresses          types.List   `tfsdk:"tftp_server_addresses"`
 	Exclusions                   types.String `tfsdk:"exclusions"`
+	NTPServers                   types.List   `tfsdk:"ntp_servers"`
+	StaticRoutes                 types.String `tfsdk:"static_routes"`
+	VendorInfo                   types.String `tfsdk:"vendor_info"`
 	IgnoreClientIdentifierOption types.Bool   `tfsdk:"ignore_client_identifier_option"`
 }
 
@@ -156,6 +159,19 @@ func (r *dhcpScopeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			"exclusions": schema.StringAttribute{
 				Description: "IP address ranges to exclude from dynamic assignment. Pipe-delimited pairs: startIP|endIP|startIP|endIP.",
+				Optional:    true,
+			},
+			"ntp_servers": schema.ListAttribute{
+				Description: "List of NTP server IP addresses for clients (DHCP option 42).",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
+			"static_routes": schema.StringAttribute{
+				Description: "Pipe-delimited static routes: destination|subnetMask|gateway|destination|subnetMask|gateway (DHCP option 121).",
+				Optional:    true,
+			},
+			"vendor_info": schema.StringAttribute{
+				Description: "Pipe-delimited vendor information: classIdentifier|specificInfo|classIdentifier|specificInfo.",
 				Optional:    true,
 			},
 			"ignore_client_identifier_option": schema.BoolAttribute{
@@ -385,6 +401,20 @@ func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScope
 		params.Set("exclusions", model.Exclusions.ValueString())
 	}
 
+	if !model.NTPServers.IsNull() && !model.NTPServers.IsUnknown() {
+		var servers []string
+		model.NTPServers.ElementsAs(ctx, &servers, false)
+		params.Set("ntpServers", strings.Join(servers, ","))
+	}
+
+	if !model.StaticRoutes.IsNull() && !model.StaticRoutes.IsUnknown() {
+		params.Set("staticRoutes", model.StaticRoutes.ValueString())
+	}
+
+	if !model.VendorInfo.IsNull() && !model.VendorInfo.IsUnknown() {
+		params.Set("vendorInfo", model.VendorInfo.ValueString())
+	}
+
 	if !model.IgnoreClientIdentifierOption.IsNull() && !model.IgnoreClientIdentifierOption.IsUnknown() {
 		params.Set("ignoreClientIdentifierOption", fmt.Sprintf("%t", model.IgnoreClientIdentifierOption.ValueBool()))
 	}
@@ -533,6 +563,72 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 		}
 	} else if !model.Exclusions.IsNull() {
 		model.Exclusions = types.StringNull()
+	}
+
+	if v, ok := scopeData["ntpServers"]; ok && v != nil {
+		items := v.([]interface{})
+		strs := make([]string, len(items))
+		for i, s := range items {
+			strs[i] = s.(string)
+		}
+		listVal, d := types.ListValueFrom(ctx, types.StringType, strs)
+		diags.Append(d...)
+		model.NTPServers = listVal
+	} else if !model.NTPServers.IsNull() {
+		model.NTPServers = types.ListNull(types.StringType)
+	}
+
+	if v, ok := scopeData["staticRoutes"]; ok && v != nil {
+		if routes, ok := v.([]interface{}); ok && len(routes) > 0 {
+			var parts []string
+			for _, r := range routes {
+				rMap, ok := r.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				dest, _ := rMap["destination"].(string)
+				mask, _ := rMap["subnetMask"].(string)
+				router, _ := rMap["router"].(string)
+				if dest != "" && mask != "" && router != "" {
+					parts = append(parts, dest, mask, router)
+				}
+			}
+			if len(parts) > 0 {
+				model.StaticRoutes = types.StringValue(strings.Join(parts, "|"))
+			} else {
+				model.StaticRoutes = types.StringNull()
+			}
+		} else if !model.StaticRoutes.IsNull() {
+			model.StaticRoutes = types.StringNull()
+		}
+	} else if !model.StaticRoutes.IsNull() {
+		model.StaticRoutes = types.StringNull()
+	}
+
+	if v, ok := scopeData["vendorInfo"]; ok && v != nil {
+		if vendors, ok := v.([]interface{}); ok && len(vendors) > 0 {
+			var parts []string
+			for _, vi := range vendors {
+				vMap, ok := vi.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				classID, _ := vMap["identifier"].(string)
+				info, _ := vMap["information"].(string)
+				if classID != "" && info != "" {
+					parts = append(parts, classID, info)
+				}
+			}
+			if len(parts) > 0 {
+				model.VendorInfo = types.StringValue(strings.Join(parts, "|"))
+			} else {
+				model.VendorInfo = types.StringNull()
+			}
+		} else if !model.VendorInfo.IsNull() {
+			model.VendorInfo = types.StringNull()
+		}
+	} else if !model.VendorInfo.IsNull() {
+		model.VendorInfo = types.StringNull()
 	}
 
 	if v, ok := scopeData["ignoreClientIdentifierOption"]; ok && v != nil {

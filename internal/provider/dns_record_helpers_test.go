@@ -233,6 +233,170 @@ func TestBuildDeleteParams_SRV(t *testing.T) {
 	}
 }
 
+func TestBuildAddParams_CAA(t *testing.T) {
+	plan := &dnsRecordResourceModel{
+		Zone:  types.StringValue("example.com"),
+		Domain: types.StringValue("example.com"),
+		Type:  types.StringValue("CAA"),
+		Value: types.StringValue("letsencrypt.org"),
+		TTL:   types.Int64Value(3600),
+		Flags: types.Int64Value(0),
+		Tag:   types.StringValue("issue"),
+	}
+	params := buildAddParams(plan)
+
+	if params.Get("value") != "letsencrypt.org" {
+		t.Errorf("value = %q", params.Get("value"))
+	}
+	if params.Get("flags") != "0" {
+		t.Errorf("flags = %q", params.Get("flags"))
+	}
+	if params.Get("tag") != "issue" {
+		t.Errorf("tag = %q", params.Get("tag"))
+	}
+}
+
+func TestBuildAddParams_FWD_Advanced(t *testing.T) {
+	plan := &dnsRecordResourceModel{
+		Zone:             types.StringValue("example.com"),
+		Domain:           types.StringValue("example.com"),
+		Type:             types.StringValue("FWD"),
+		Value:            types.StringValue("1.1.1.1"),
+		TTL:              types.Int64Value(3600),
+		Protocol:         types.StringValue("Tcp"),
+		DnssecValidation: types.BoolValue(true),
+		ProxyType:        types.StringValue("Http"),
+		ProxyAddress:     types.StringValue("proxy.example.com"),
+		ProxyPort:        types.Int64Value(8080),
+	}
+	params := buildAddParams(plan)
+
+	if params.Get("forwarder") != "1.1.1.1" {
+		t.Errorf("forwarder = %q", params.Get("forwarder"))
+	}
+	if params.Get("protocol") != "Tcp" {
+		t.Errorf("protocol = %q", params.Get("protocol"))
+	}
+	if params.Get("dnssecValidation") != "true" {
+		t.Errorf("dnssecValidation = %q", params.Get("dnssecValidation"))
+	}
+	if params.Get("proxyType") != "Http" {
+		t.Errorf("proxyType = %q", params.Get("proxyType"))
+	}
+	if params.Get("proxyAddress") != "proxy.example.com" {
+		t.Errorf("proxyAddress = %q", params.Get("proxyAddress"))
+	}
+	if params.Get("proxyPort") != "8080" {
+		t.Errorf("proxyPort = %q", params.Get("proxyPort"))
+	}
+}
+
+func TestBuildUpdateParams_CAA(t *testing.T) {
+	state := &dnsRecordResourceModel{
+		Zone:  types.StringValue("example.com"),
+		Domain: types.StringValue("example.com"),
+		Type:  types.StringValue("CAA"),
+		Value: types.StringValue("letsencrypt.org"),
+		TTL:   types.Int64Value(3600),
+		Flags: types.Int64Value(0),
+		Tag:   types.StringValue("issue"),
+	}
+	plan := &dnsRecordResourceModel{
+		Zone:  types.StringValue("example.com"),
+		Domain: types.StringValue("example.com"),
+		Type:  types.StringValue("CAA"),
+		Value: types.StringValue("buypass.com"),
+		TTL:   types.Int64Value(3600),
+		Flags: types.Int64Value(128),
+		Tag:   types.StringValue("issuewild"),
+	}
+	params := buildUpdateParams(state, plan)
+
+	if params.Get("value") != "letsencrypt.org" {
+		t.Errorf("value = %q", params.Get("value"))
+	}
+	if params.Get("newValue") != "buypass.com" {
+		t.Errorf("newValue = %q", params.Get("newValue"))
+	}
+	if params.Get("flags") != "0" {
+		t.Errorf("flags = %q", params.Get("flags"))
+	}
+	if params.Get("newFlags") != "128" {
+		t.Errorf("newFlags = %q", params.Get("newFlags"))
+	}
+	if params.Get("tag") != "issue" {
+		t.Errorf("tag = %q", params.Get("tag"))
+	}
+	if params.Get("newTag") != "issuewild" {
+		t.Errorf("newTag = %q", params.Get("newTag"))
+	}
+}
+
+func TestBuildUpdateParams_FWD_Advanced(t *testing.T) {
+	state := &dnsRecordResourceModel{
+		Zone:     types.StringValue("example.com"),
+		Domain:   types.StringValue("example.com"),
+		Type:     types.StringValue("FWD"),
+		Value:    types.StringValue("1.1.1.1"),
+		TTL:      types.Int64Value(3600),
+		Protocol: types.StringValue("Udp"),
+	}
+	plan := &dnsRecordResourceModel{
+		Zone:             types.StringValue("example.com"),
+		Domain:           types.StringValue("example.com"),
+		Type:             types.StringValue("FWD"),
+		Value:            types.StringValue("8.8.8.8"),
+		TTL:              types.Int64Value(3600),
+		Protocol:         types.StringValue("Tcp"),
+		DnssecValidation: types.BoolValue(true),
+		ProxyType:        types.StringValue("Socks5"),
+		ProxyAddress:     types.StringValue("socks.example.com"),
+		ProxyPort:        types.Int64Value(1080),
+	}
+	params := buildUpdateParams(state, plan)
+
+	if params.Get("forwarder") != "1.1.1.1" {
+		t.Errorf("forwarder = %q", params.Get("forwarder"))
+	}
+	if params.Get("newForwarder") != "8.8.8.8" {
+		t.Errorf("newForwarder = %q", params.Get("newForwarder"))
+	}
+	if params.Get("dnssecValidation") != "true" {
+		t.Errorf("dnssecValidation = %q", params.Get("dnssecValidation"))
+	}
+	if params.Get("proxyType") != "Socks5" {
+		t.Errorf("proxyType = %q", params.Get("proxyType"))
+	}
+	if params.Get("proxyAddress") != "socks.example.com" {
+		t.Errorf("proxyAddress = %q", params.Get("proxyAddress"))
+	}
+	if params.Get("proxyPort") != "1080" {
+		t.Errorf("proxyPort = %q", params.Get("proxyPort"))
+	}
+}
+
+func TestBuildDeleteParams_CAA(t *testing.T) {
+	state := &dnsRecordResourceModel{
+		Zone:  types.StringValue("example.com"),
+		Domain: types.StringValue("example.com"),
+		Type:  types.StringValue("CAA"),
+		Value: types.StringValue("letsencrypt.org"),
+		Flags: types.Int64Value(0),
+		Tag:   types.StringValue("issue"),
+	}
+	params := buildDeleteParams(state)
+
+	if params.Get("value") != "letsencrypt.org" {
+		t.Errorf("value = %q", params.Get("value"))
+	}
+	if params.Get("flags") != "0" {
+		t.Errorf("flags = %q", params.Get("flags"))
+	}
+	if params.Get("tag") != "issue" {
+		t.Errorf("tag = %q", params.Get("tag"))
+	}
+}
+
 func TestBuildDeleteParams_FWD(t *testing.T) {
 	state := &dnsRecordResourceModel{
 		Zone:     types.StringValue("example.com"),
