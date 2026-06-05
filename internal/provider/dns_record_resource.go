@@ -404,6 +404,23 @@ func (r *dnsRecordResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	if !plan.Disabled.IsNull() && plan.Disabled.ValueBool() {
+		disableParams := url.Values{}
+		disableParams.Set("domain", plan.Domain.ValueString())
+		disableParams.Set("zone", plan.Zone.ValueString())
+		disableParams.Set("type", plan.Type.ValueString())
+		disableParams.Set("disable", "true")
+		setValueParams(disableParams, &plan)
+		_, err = r.client.UpdateRecord(disableParams)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Disabling DNS Record",
+				fmt.Sprintf("Record was created but could not be disabled: %s", err.Error()),
+			)
+			return
+		}
+	}
+
 	plan.ID = types.StringValue(compositeID(
 		plan.Zone.ValueString(),
 		plan.Domain.ValueString(),
@@ -505,6 +522,11 @@ func (r *dnsRecordResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	_, err := r.client.DeleteRecord(params)
 	if err != nil {
+		if strings.Contains(err.Error(), "no such record") ||
+			strings.Contains(err.Error(), "was not found") ||
+			strings.Contains(err.Error(), "No such zone") {
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error Deleting DNS Record",
 			fmt.Sprintf("Could not delete record %s in zone %s: %s",
@@ -896,10 +918,6 @@ func buildAddParams(plan *dnsRecordResourceModel) url.Values {
 	params.Set("zone", plan.Zone.ValueString())
 	params.Set("type", plan.Type.ValueString())
 	params.Set("ttl", fmt.Sprintf("%d", plan.TTL.ValueInt64()))
-
-	if !plan.Disabled.IsNull() && plan.Disabled.ValueBool() {
-		params.Set("disabled", "true")
-	}
 
 	if !plan.Comments.IsNull() && !plan.Comments.IsUnknown() {
 		params.Set("comments", plan.Comments.ValueString())

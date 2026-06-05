@@ -426,6 +426,9 @@ func (r *dnsZoneResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 	_, err := r.client.DeleteZone(state.Name.ValueString())
 	if err != nil {
+		if strings.Contains(err.Error(), "was not found") || strings.Contains(err.Error(), "No such zone") {
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error Deleting DNS Zone",
 			fmt.Sprintf("Could not delete zone %q: %s", state.Name.ValueString(), err),
