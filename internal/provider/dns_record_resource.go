@@ -586,21 +586,33 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		params.Set("newTarget", newValue)
 		if !state.Priority.IsNull() && !state.Priority.IsUnknown() {
 			params.Set("priority", fmt.Sprintf("%d", state.Priority.ValueInt64()))
+		} else {
+			params.Set("priority", "0")
 		}
 		if !plan.Priority.IsNull() && !plan.Priority.IsUnknown() {
 			params.Set("newPriority", fmt.Sprintf("%d", plan.Priority.ValueInt64()))
+		} else {
+			params.Set("newPriority", "0")
 		}
 		if !state.Weight.IsNull() && !state.Weight.IsUnknown() {
 			params.Set("weight", fmt.Sprintf("%d", state.Weight.ValueInt64()))
+		} else {
+			params.Set("weight", "0")
 		}
 		if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 			params.Set("newWeight", fmt.Sprintf("%d", plan.Weight.ValueInt64()))
+		} else {
+			params.Set("newWeight", "0")
 		}
 		if !state.Port.IsNull() && !state.Port.IsUnknown() {
 			params.Set("port", fmt.Sprintf("%d", state.Port.ValueInt64()))
+		} else {
+			params.Set("port", "0")
 		}
 		if !plan.Port.IsNull() && !plan.Port.IsUnknown() {
 			params.Set("newPort", fmt.Sprintf("%d", plan.Port.ValueInt64()))
+		} else {
+			params.Set("newPort", "0")
 		}
 	case "CAA":
 		params.Set("value", oldValue)
@@ -624,9 +636,13 @@ func buildUpdateParams(state, plan *dnsRecordResourceModel) url.Values {
 		params.Set("newForwarder", newValue)
 		if !state.Protocol.IsNull() && !state.Protocol.IsUnknown() {
 			params.Set("protocol", state.Protocol.ValueString())
+		} else {
+			params.Set("protocol", "Udp")
 		}
 		if !plan.Protocol.IsNull() && !plan.Protocol.IsUnknown() {
 			params.Set("newProtocol", plan.Protocol.ValueString())
+		} else {
+			params.Set("newProtocol", "Udp")
 		}
 		if !state.ForwarderPriority.IsNull() && !state.ForwarderPriority.IsUnknown() {
 			params.Set("forwarderPriority", fmt.Sprintf("%d", state.ForwarderPriority.ValueInt64()))

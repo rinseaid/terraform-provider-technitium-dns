@@ -59,9 +59,10 @@ func (r *dhcpReservedLeaseResource) Schema(_ context.Context, _ resource.SchemaR
 				},
 			},
 			"hardware_address": schema.StringAttribute{
-				Description: "The MAC address of the client device.",
+				Description: "The MAC address of the client device. Stored in lowercase colon-separated format.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
+					normalizeMACModifier{},
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
@@ -242,9 +243,10 @@ func (r *dhcpReservedLeaseResource) ImportState(ctx context.Context, req resourc
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	normalizedMAC := normalizeMAC(parts[1])
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), compositeLeaseID(parts[0], normalizedMAC))...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("scope_name"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("hardware_address"), parts[1])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("hardware_address"), normalizedMAC)...)
 }
 
 func (r *dhcpReservedLeaseResource) buildAddParams(model *dhcpReservedLeaseResourceModel) url.Values {
@@ -291,7 +293,6 @@ func (r *dhcpReservedLeaseResource) readIntoModel(_ context.Context, model *dhcp
 		leaseMAC := normalizeMAC(lease["hardwareAddress"].(string))
 		if leaseMAC == mac {
 			model.Address = types.StringValue(lease["address"].(string))
-			model.HardwareAddress = types.StringValue(leaseMAC)
 
 			if v, ok := lease["hostName"]; ok && v != nil && v != "" {
 				model.Hostname = types.StringValue(v.(string))
@@ -331,5 +332,23 @@ func compositeLeaseID(scope, mac string) string {
 func normalizeMAC(mac string) string {
 	mac = strings.ToLower(mac)
 	mac = strings.ReplaceAll(mac, "-", ":")
+	mac = strings.ReplaceAll(mac, ".", ":")
 	return mac
+}
+
+type normalizeMACModifier struct{}
+
+func (m normalizeMACModifier) Description(_ context.Context) string {
+	return "Normalizes MAC address to lowercase colon-separated format."
+}
+
+func (m normalizeMACModifier) MarkdownDescription(_ context.Context) string {
+	return "Normalizes MAC address to lowercase colon-separated format."
+}
+
+func (m normalizeMACModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+		return
+	}
+	resp.PlanValue = types.StringValue(normalizeMAC(req.PlanValue.ValueString()))
 }

@@ -6,6 +6,27 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+func TestNormalizeMAC(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"0E-0E-0C-88-A4-B9", "0e:0e:0c:88:a4:b9"},
+		{"0e:0e:0c:88:a4:b9", "0e:0e:0c:88:a4:b9"},
+		{"0E:0E:0C:88:A4:B9", "0e:0e:0c:88:a4:b9"},
+		{"0e.0e.0c.88.a4.b9", "0e:0e:0c:88:a4:b9"},
+		{"00-11-22-33-44-55", "00:11:22:33:44:55"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := normalizeMAC(tt.input)
+			if got != tt.want {
+				t.Errorf("normalizeMAC(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRecordValueFromRData(t *testing.T) {
 	tests := []struct {
 		name       string
