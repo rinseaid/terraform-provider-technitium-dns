@@ -83,7 +83,7 @@ jobs:
 
       - name: Configure Forgejo release target
         run: |
-          yq '.release.gitea.owner = "rinseaid" | .release.gitea.name = "terraform-provider-technitium-dns"' .goreleaser.yml > /tmp/.goreleaser-forgejo.yml
+          yq '.release.gitea.owner = "rinseaid" | .release.gitea.name = "terraform-provider-technitium-dns" | .release.gitea.api = "https://forgejo.rinseaid.net"' .goreleaser.yml > /tmp/.goreleaser-forgejo.yml
 
       - name: Run GoReleaser
         run: |
@@ -91,5 +91,4 @@ jobs:
         env:
           GITEA_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ""
-          GITEA_SERVER_URL: https://forgejo.rinseaid.net
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
