@@ -23,6 +23,7 @@ jobs:
 
       - name: Start Technitium DNS Server
         run: |
+          docker rm -f technitium 2>/dev/null || true
           docker run -d --name technitium \
             -p 5380:5380 \
             -e DNS_SERVER_DOMAIN=test.local \
