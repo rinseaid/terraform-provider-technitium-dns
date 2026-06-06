@@ -1,29 +1,42 @@
-Terraform/OpenTofu provider for Technitium DNS Server v14.x. Manages DNS zones, records, DHCP scopes, TSIG keys, DNSSEC signing, server settings, admin users/groups, and allow/block lists through the Technitium HTTP API.
+Bug fix and documentation release.
 
-## What's included
+### State-loss fixes
 
-- **14 resources** and **8 data sources**, all with import support
-- **21 DNS record types:** A, AAAA, CNAME, MX, TXT, SRV, NS, PTR, CAA, SOA, FWD, APP, ANAME, DNAME, NAPTR, SSHFP, TLSA, URI, DS, SVCB, HTTPS
-- DHCP scope management with reserved leases, exclusions, static routes, PXE boot options
-- TSIG key management through the settings API (pipe-delimited wire format)
-- DNSSEC zone signing with ECDSA, RSA, and EdDSA algorithms
-- Admin user/group/permission management
-- Allow and block zone lists
-- Configurable HTTP timeout and automatic retry with exponential backoff
+- Read operations no longer drop state on transient API errors for zones, DNSSEC, admin users, groups, and permissions. Previously a temporary 500 or timeout would cause Terraform to think the resource was deleted.
+- All resource deletes now check for "not found" before removing from state, preventing crashes on already-deleted resources.
+- SVCB/HTTPS `svcParams` map keys are now sorted deterministically, eliminating perpetual plan diffs.
+- DNSSEC write-only fields (key parameters) are preserved across reads instead of triggering perpetual diffs.
+- Added missing RSAMD5 case to DNSSEC algorithm mapping.
 
-## Testing
+### Client improvements
 
-241 tests validated against a live Technitium v14 instance. Coverage includes create, read, update, delete, and import for each resource, plus edge cases: disabled records, lowercase hex normalization, multiple records per domain, idempotent deletes, and provider misconfiguration detection.
+- Context propagation: all API calls now accept `context.Context` for proper Terraform cancellation support.
+- POST requests are no longer retried (retrying non-idempotent operations could create duplicate resources).
+- Automatic token refresh on `invalid-token` response when using username/password auth.
+- HTTP 500 added to retryable status codes for GET requests.
+- Login uses `NewRequestWithContext` instead of `PostForm` (respects context cancellation and custom User-Agent).
+- `User-Agent` header set to `terraform-provider-technitium-dns/<version>`.
 
-## Provider configuration
+### Schema fixes
 
-```hcl
-provider "technitium" {
-  server_url = "http://192.168.1.1:5380"
-  api_token  = var.technitium_token
-}
-```
+- Zone `type` attribute now uses `RequiresReplace` (in-place type changes are not supported by the API).
+- `UseStateForUnknown` added to Optional+Computed record fields and `id`, reducing unnecessary plan noise.
+- Admin user `password` uses `WriteOnly` (no longer stored in state).
+- Provider credential fields check `IsUnknown` consistently.
+- DHCP scope data source attribute names aligned with the resource schema.
+- Forwarder zones support configurable address and protocol (previously hardcoded).
+- DNS settings data source gains 10 fields that were present in the resource but missing from the data source.
 
-All attributes support environment variable fallback: `TECHNITIUM_SERVER_URL`, `TECHNITIUM_API_TOKEN`, `TECHNITIUM_USERNAME`, `TECHNITIUM_PASSWORD`.
+### Documentation
 
-Built with the Terraform Plugin Framework. Protocol version 6.
+- Fixed incorrect README examples: `admin_permission` used nonexistent attributes, `dns_app_config` used `app_name` instead of `name`.
+- Added missing examples for `admin_user`, `admin_group`, `admin_permission`, `dns_app_config`, `zone_dnssec` resources and `dns_apps` data source.
+- Regenerated all docs from current schema (provider `timeout` attribute now documented, validator descriptions visible).
+
+### Build and CI
+
+- Pinned golangci-lint to v2.1.6, added `gosec` and `noctx` linters.
+- Added `go mod tidy` drift check and `govulncheck` to CI.
+- Release workflow skips GPG signing gracefully when key is not configured.
+- Removed duplicate `.github/workflows` (Forgejo is canonical CI).
+- Removed dead code: `ConvertToReservedLease` stub and its test.
