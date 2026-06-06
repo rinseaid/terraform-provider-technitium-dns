@@ -311,6 +311,12 @@ func (r *dhcpScopeResource) Update(ctx context.Context, req resource.UpdateReque
 		}
 	}
 
+	diags = r.readIntoModel(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
