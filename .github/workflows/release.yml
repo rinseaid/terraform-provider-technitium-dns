@@ -70,17 +70,20 @@ jobs:
           cache: true
 
       - name: Import GPG key
+        if: env.GPG_PRIVATE_KEY != ''
         uses: crazy-max/ghaction-import-gpg@v6
         id: import_gpg
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-          args: release --clean
+          args: release --clean ${{ steps.import_gpg.outputs.fingerprint == '' && '--skip=sign' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
