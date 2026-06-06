@@ -81,9 +81,6 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
-      - name: Install GoReleaser
-        run: go install github.com/goreleaser/goreleaser/v2@latest
-
       - name: Configure Forgejo release target
         run: |
           yq '.release.gitea.owner = "rinseaid" | .release.gitea.name = "terraform-provider-technitium-dns"' .goreleaser.yml > /tmp/.goreleaser-forgejo.yml
