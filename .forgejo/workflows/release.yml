@@ -23,8 +23,10 @@ jobs:
 
       - name: Start Technitium DNS Server
         run: |
-          docker rm -f technitium 2>/dev/null || true
+          docker rm -fv technitium 2>/dev/null || true
+          docker volume prune -f 2>/dev/null || true
           docker run -d --name technitium \
+            --tmpfs /etc/dns \
             -p 5380:5380 \
             -e DNS_SERVER_DOMAIN=test.local \
             -e DNS_SERVER_ADMIN_PASSWORD=admin \
