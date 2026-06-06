@@ -15,7 +15,7 @@ Built with the [Terraform Plugin Framework](https://developer.hashicorp.com/terr
 ### From source
 
 ```sh
-git clone https://forgejo.rinseaid.uk/rinseaid/terraform-provider-technitium-dns.git
+git clone https://github.com/rinseaid/terraform-provider-technitium-dns.git
 cd terraform-provider-technitium-dns
 make install
 ```
