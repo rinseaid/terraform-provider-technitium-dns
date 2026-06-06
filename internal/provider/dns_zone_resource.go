@@ -572,9 +572,15 @@ func (r *dnsZoneResource) readIntoModel(ctx context.Context, model *dnsZoneResou
 		model.PrimaryZoneTransferTSIGKey = types.StringNull()
 	}
 
-	// forwarder and forwarder_protocol are create-time parameters stored as
-	// FWD records, not returned by zones/options/get. UseStateForUnknown
-	// preserves them from the plan; on import they remain null.
+	// forwarder and forwarder_protocol are create-time parameters not returned
+	// by the API. Resolve any remaining unknowns to null so Terraform never
+	// sees an unknown value after apply.
+	if model.Forwarder.IsUnknown() {
+		model.Forwarder = types.StringNull()
+	}
+	if model.ForwarderProtocol.IsUnknown() {
+		model.ForwarderProtocol = types.StringNull()
+	}
 
 	return
 }

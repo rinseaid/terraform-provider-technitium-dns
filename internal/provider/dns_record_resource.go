@@ -109,9 +109,6 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"id": schema.StringAttribute{
 				Description: "Composite identifier in the format zone:domain:type:value.",
 				Computed:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"zone": schema.StringAttribute{
 				Description: "The authoritative zone name.",
