@@ -44,6 +44,12 @@ signs:
 
 release:
   draft: false
+  replace_existing_draft: true
 
 changelog:
-  disable: true
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
