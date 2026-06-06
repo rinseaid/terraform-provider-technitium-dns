@@ -83,6 +83,7 @@ jobs:
 
       - name: Run GoReleaser
         run: |
+          unset GITHUB_TOKEN
           goreleaser release --clean --release-notes=RELEASE_NOTES.md ${{ steps.import_gpg.outputs.fingerprint == '' && '--skip=sign' || '' }}
         env:
           GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
