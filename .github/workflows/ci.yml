@@ -85,11 +85,11 @@ jobs:
         ports:
           - 5380:5380
         options: >-
-          --health-cmd "curl -sf http://localhost:5380/ || exit 1"
+          --health-cmd "bash -c 'echo > /dev/tcp/localhost/5380' || exit 1"
           --health-interval 5s
           --health-timeout 3s
-          --health-retries 10
-          --health-start-period 10s
+          --health-retries 15
+          --health-start-period 15s
     steps:
       - uses: actions/checkout@v4
 
