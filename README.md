@@ -364,8 +364,7 @@ make testacc
 │   └── provider/     # Resource and data source implementations
 ├── examples/         # Example .tf files (used by doc generation)
 ├── docs/             # Generated provider documentation
-├── .github/workflows/
-│   ├── ci.yml        # Lint, unit tests, acceptance tests, coverage
-│   └── release.yml   # GoReleaser on tag push
-└── APIDOCS.md        # Technitium DNS Server API reference
+└── .github/workflows/
+    ├── ci.yml        # Lint, unit tests, acceptance tests, coverage
+    └── release.yml   # GoReleaser on tag push
 ```
