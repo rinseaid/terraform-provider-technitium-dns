@@ -1,6 +1,7 @@
 terraform-provider-technitium
 terraform-provider-technitium-dns
 .DS_Store
+CLAUDE.md
 *.out
 *.html
 dist/
