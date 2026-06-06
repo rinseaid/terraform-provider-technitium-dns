@@ -233,8 +233,8 @@ Manages configuration for a DNS application installed on the Technitium server.
 
 ```hcl
 resource "technitium_dns_app_config" "blocker" {
-  app_name = "Advanced Blocking"
-  config   = jsonencode({ "enableBlocking" = true })
+  name   = "Advanced Blocking"
+  config = jsonencode({ "enableBlocking" = true })
 }
 ```
 
@@ -261,13 +261,13 @@ resource "technitium_admin_group" "operators" {
 
 ### technitium_admin_permission
 
-Manages permissions for an admin group.
+Manages section-level permissions for admin users and groups.
 
 ```hcl
 resource "technitium_admin_permission" "operators_zones" {
-  group   = technitium_admin_group.operators.name
-  section = "Zones"
-  access  = "Allow"
+  section           = "Zones"
+  user_permissions  = "ops-admin|true|true|false"
+  group_permissions = "operators|true|true|false"
 }
 ```
 

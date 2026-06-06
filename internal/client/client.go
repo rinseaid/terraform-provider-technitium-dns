@@ -410,11 +410,6 @@ func (c *Client) RemoveReservedLease(scopeName string, leaseParams url.Values) (
 	return c.doRequest(http.MethodPost, "dhcp/scopes/removeReservedLease", merged)
 }
 
-// ConvertToReservedLease converts a dynamic lease to a reserved lease.
-func (c *Client) ConvertToReservedLease(scopeName, hardwareAddress string) (map[string]interface{}, error) {
-	return nil, errors.New("ConvertToReservedLease: not implemented")
-}
-
 // ---------------------------------------------------------------------------
 // Allowed / Blocked Zones
 // ---------------------------------------------------------------------------

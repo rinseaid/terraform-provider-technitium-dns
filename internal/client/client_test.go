@@ -1285,20 +1285,7 @@ func TestListCatalogZones(t *testing.T) {
 	}
 }
 
-func TestConvertToReservedLease(t *testing.T) {
-	srv := newTestServer()
-	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin", 0)
-	if err != nil {
-		t.Fatalf("login failed: %v", err)
-	}
-
-	_, err = c.ConvertToReservedLease("Default", "00:11:22:33:44:55")
-	if err == nil {
-		t.Fatal("expected error from unimplemented method")
-	}
-}
 
 func TestAddReservedLease_MissingParams(t *testing.T) {
 	srv := newTestServer()

@@ -27,4 +27,5 @@ provider "technitium" {
 - `api_token` (String, Sensitive) API token for Technitium DNS Server authentication. Can also be set with the TECHNITIUM_API_TOKEN environment variable. Alternative to username/password authentication.
 - `password` (String, Sensitive) Password for Technitium DNS Server authentication. Can also be set with the TECHNITIUM_PASSWORD environment variable. Required if api_token is not set.
 - `server_url` (String) URL of the Technitium DNS Server API (e.g. http://localhost:5380). Can also be set with the TECHNITIUM_SERVER_URL environment variable.
+- `timeout` (Number) HTTP request timeout in seconds. Defaults to 30.
 - `username` (String, Sensitive) Username for Technitium DNS Server authentication. Can also be set with the TECHNITIUM_USERNAME environment variable. Required if api_token is not set.

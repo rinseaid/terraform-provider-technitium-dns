@@ -48,7 +48,7 @@ resource "technitium_dhcp_scope" "lan" {
 - `enabled` (Boolean) Whether the DHCP scope is enabled.
 - `exclusions` (String) IP address ranges to exclude from dynamic assignment. Pipe-delimited pairs: startIP|endIP|startIP|endIP.
 - `ignore_client_identifier_option` (Boolean) Always use client MAC address as identifier instead of Client Identifier (option 61).
-- `lease_time` (Number) Lease duration in seconds.
+- `lease_time` (Number) Lease duration in seconds. Must be divisible by 60 (API resolution is minutes).
 - `ntp_servers` (List of String) List of NTP server IP addresses for clients (DHCP option 42).
 - `offer_delay` (Number) Delay before sending DHCPOFFER in milliseconds.
 - `ping_check` (Boolean) Enable ping check before assigning an IP address.
