@@ -11,20 +11,6 @@ permissions:
 jobs:
   acceptance:
     runs-on: ubuntu-latest
-    services:
-      technitium:
-        image: technitium/dns-server:latest
-        env:
-          DNS_SERVER_DOMAIN: test.local
-          DNS_SERVER_ADMIN_PASSWORD: admin
-        ports:
-          - 5380:5380
-        options: >-
-          --health-cmd "bash -c 'echo > /dev/tcp/localhost/5380' || exit 1"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 15
-          --health-start-period 15s
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,6 +20,14 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+
+      - name: Start Technitium DNS Server
+        run: |
+          docker run -d --name technitium \
+            -p 5380:5380 \
+            -e DNS_SERVER_DOMAIN=test.local \
+            -e DNS_SERVER_ADMIN_PASSWORD=admin \
+            technitium/dns-server:latest
 
       - name: Wait for Technitium API
         run: |
@@ -46,6 +40,7 @@ jobs:
             sleep 2
           done
           echo "Technitium failed to start"
+          docker logs technitium
           exit 1
 
       - name: Run full test suite
@@ -55,6 +50,10 @@ jobs:
           TECHNITIUM_USERNAME: admin
           TECHNITIUM_PASSWORD: admin
         run: go test -count=1 -v -timeout 30m ./...
+
+      - name: Stop Technitium
+        if: always()
+        run: docker rm -f technitium 2>/dev/null || true
 
   goreleaser:
     runs-on: ubuntu-latest
