@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -14,7 +15,7 @@ func testAccDnsAppConfigPreCheck(t *testing.T) {
 	if err != nil {
 		t.Skipf("skipping: cannot create client: %s", err)
 	}
-	resp, err := c.ListApps()
+	resp, err := c.ListApps(context.Background())
 	if err != nil {
 		t.Skipf("skipping: cannot list apps: %s", err)
 	}
@@ -30,7 +31,7 @@ func testAccFirstAppName(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("cannot create client: %s", err)
 	}
-	resp, err := c.ListApps()
+	resp, err := c.ListApps(context.Background())
 	if err != nil {
 		t.Fatalf("cannot list apps: %s", err)
 	}

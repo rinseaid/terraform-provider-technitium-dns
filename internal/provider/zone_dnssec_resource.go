@@ -158,7 +158,7 @@ func (r *zoneDnssecResource) Create(ctx context.Context, req resource.CreateRequ
 
 	params := r.buildSignParams(&plan)
 
-	_, err := r.client.SignZone(zone, params)
+	_, err := r.client.SignZone(ctx, zone, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Signing Zone",
@@ -186,9 +186,16 @@ func (r *zoneDnssecResource) Read(ctx context.Context, req resource.ReadRequest,
 	zone := state.Zone.ValueString()
 
 	// Check zone options to see if DNSSEC is still active.
-	zoneOpts, err := r.client.GetZoneOptions(zone)
+	zoneOpts, err := r.client.GetZoneOptions(ctx, zone)
 	if err != nil {
-		resp.State.RemoveResource(ctx)
+		if strings.Contains(err.Error(), "was not found") || strings.Contains(err.Error(), "No such zone") {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError(
+			"Error Reading Zone Options",
+			fmt.Sprintf("Could not read zone options for %q: %s", zone, err),
+		)
 		return
 	}
 
@@ -220,7 +227,7 @@ func (r *zoneDnssecResource) Update(ctx context.Context, req resource.UpdateRequ
 	})
 
 	// DNSSEC params cannot be updated in place; unsign then re-sign.
-	_, err := r.client.UnsignZone(zone)
+	_, err := r.client.UnsignZone(ctx, zone)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Unsigning Zone",
@@ -231,7 +238,7 @@ func (r *zoneDnssecResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	params := r.buildSignParams(&plan)
 
-	_, err = r.client.SignZone(zone, params)
+	_, err = r.client.SignZone(ctx, zone, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Re-signing Zone",
@@ -262,7 +269,7 @@ func (r *zoneDnssecResource) Delete(ctx context.Context, req resource.DeleteRequ
 		"zone": zone,
 	})
 
-	_, err := r.client.UnsignZone(zone)
+	_, err := r.client.UnsignZone(ctx, zone)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Unsigning Zone",
@@ -348,14 +355,16 @@ func dnssecAlgoToProvider(apiAlgo string) (algorithm, hashAlgorithm, curve strin
 		return "EDDSA", "", "ED25519"
 	case "ED448":
 		return "EDDSA", "", "ED448"
+	case "RSAMD5":
+		return "RSA", "MD5", ""
 	default:
 		return apiAlgo, "", ""
 	}
 }
 
 // readDnssecIntoModel reads DNSSEC properties and zone options into the model.
-func (r *zoneDnssecResource) readDnssecIntoModel(_ context.Context, zone string, model *zoneDnssecResourceModel, diags *diag.Diagnostics) {
-	props, err := r.client.GetDNSSECProperties(zone)
+func (r *zoneDnssecResource) readDnssecIntoModel(ctx context.Context, zone string, model *zoneDnssecResourceModel, diags *diag.Diagnostics) {
+	props, err := r.client.GetDNSSECProperties(ctx, zone)
 	if err != nil {
 		diags.AddError(
 			"Error Reading DNSSEC Properties",
@@ -415,16 +424,4 @@ func (r *zoneDnssecResource) readDnssecIntoModel(_ context.Context, zone string,
 		}
 	}
 
-	if !model.KskKeySize.IsNull() {
-		model.KskKeySize = types.Int64Null()
-	}
-	if !model.ZskKeySize.IsNull() {
-		model.ZskKeySize = types.Int64Null()
-	}
-	if !model.Iterations.IsNull() {
-		model.Iterations = types.Int64Null()
-	}
-	if !model.SaltLength.IsNull() {
-		model.SaltLength = types.Int64Null()
-	}
 }

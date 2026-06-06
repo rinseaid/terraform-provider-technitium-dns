@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -72,7 +73,7 @@ func testAccCheckAdminUserDestroy(username string) resource.TestCheckFunc {
 			return fmt.Errorf("creating client for destroy check: %s", err)
 		}
 
-		_, err = c.GetUserDetails(username)
+		_, err = c.GetUserDetails(context.Background(), username)
 		if err == nil {
 			return fmt.Errorf("admin user %q still exists after destroy", username)
 		}

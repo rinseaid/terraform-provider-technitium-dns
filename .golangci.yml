@@ -12,9 +12,12 @@ linters:
     - unused
     - gocritic
     - misspell
+    - gosec
+    - noctx
 
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
         - errcheck
+        - gosec

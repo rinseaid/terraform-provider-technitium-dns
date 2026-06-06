@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,11 @@ type Client struct {
 	baseURL    string
 	token      string
 	httpClient *http.Client
+	UserAgent  string
+
+	username string
+	password string
+	mu       sync.Mutex
 }
 
 const defaultTimeout = 30 * time.Second
@@ -25,7 +31,24 @@ const defaultTimeout = 30 * time.Second
 // NewWithCredentials authenticates with the Technitium DNS server using
 // username/password and returns a Client ready to make API calls.
 func NewWithCredentials(baseURL, username, password string, timeout time.Duration) (*Client, error) {
-	return NewClient(baseURL, username, password, timeout)
+	baseURL = strings.TrimRight(baseURL, "/")
+	if timeout <= 0 {
+		timeout = defaultTimeout
+	}
+
+	c := &Client{
+		baseURL:  baseURL,
+		username: username,
+		password: password,
+		httpClient: &http.Client{
+			Timeout: timeout,
+		},
+	}
+
+	if err := c.login(context.Background()); err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 // NewWithToken creates a Client using an existing API token. It validates the
@@ -42,7 +65,7 @@ func NewWithToken(baseURL, token string, timeout time.Duration) (*Client, error)
 			Timeout: timeout,
 		},
 	}
-	_, err := c.doRequest(http.MethodGet, "settings/get", nil)
+	_, err := c.doRequest(context.Background(), http.MethodGet, "settings/get", nil)
 	if err != nil {
 		return nil, fmt.Errorf("token validation failed: %w", err)
 	}
@@ -53,36 +76,38 @@ func NewWithToken(baseURL, token string, timeout time.Duration) (*Client, error)
 // Client ready to make API calls. The baseURL should be the scheme, host,
 // and port of the server (e.g. "http://192.168.1.1:5380").
 func NewClient(baseURL, username, password string, timeout time.Duration) (*Client, error) {
-	baseURL = strings.TrimRight(baseURL, "/")
-	if timeout <= 0 {
-		timeout = defaultTimeout
-	}
+	return NewWithCredentials(baseURL, username, password, timeout)
+}
 
-	c := &Client{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
-	}
-
+func (c *Client) login(ctx context.Context) error {
 	params := url.Values{}
-	params.Set("user", username)
-	params.Set("pass", password)
+	params.Set("user", c.username)
+	params.Set("pass", c.password)
 
-	resp, err := c.httpClient.PostForm(baseURL+"/api/user/login", params)
+	body := strings.NewReader(params.Encode())
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/user/login", body)
 	if err != nil {
-		return nil, fmt.Errorf("login request failed: %w", err)
+		return fmt.Errorf("creating login request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if c.UserAgent != "" {
+		req.Header.Set("User-Agent", c.UserAgent)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("login request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("reading login response: %w", err)
+		return fmt.Errorf("reading login response: %w", err)
 	}
 
 	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("parsing login response: %w", err)
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return fmt.Errorf("parsing login response: %w", err)
 	}
 
 	status, _ := result["status"].(string)
@@ -91,34 +116,46 @@ func NewClient(baseURL, username, password string, timeout time.Duration) (*Clie
 		if errMsg == "" {
 			errMsg = "unknown error"
 		}
-		return nil, fmt.Errorf("login failed: %s", errMsg)
+		return fmt.Errorf("login failed: %s", errMsg)
 	}
 
 	token, ok := result["token"].(string)
 	if !ok || token == "" {
-		return nil, errors.New("login response missing token")
+		return errors.New("login response missing token")
 	}
 
+	c.mu.Lock()
 	c.token = token
-	return c, nil
+	c.mu.Unlock()
+	return nil
 }
 
-// doRequest executes an HTTP request against the Technitium API and returns
-// the parsed "response" object from the JSON body. Auth is provided via the
-// Authorization header. Parameters are sent as query string for GET or as
-// form data for POST.
-func (c *Client) doRequest(method, endpoint string, params url.Values) (map[string]interface{}, error) {
-	return c.doRequestCtx(context.Background(), method, endpoint, params)
+var errInvalidToken = errors.New("session token is invalid or expired")
+
+// doRequest executes an API request, handling retries for GET and token refresh.
+func (c *Client) doRequest(ctx context.Context, method, endpoint string, params url.Values) (map[string]interface{}, error) {
+	result, err := c.doRequestWithRetry(ctx, method, endpoint, params)
+	if err != nil && errors.Is(err, errInvalidToken) && c.username != "" && c.password != "" {
+		if loginErr := c.login(ctx); loginErr != nil {
+			return nil, fmt.Errorf("token expired and re-authentication failed: %w", loginErr)
+		}
+		return c.doRequestWithRetry(ctx, method, endpoint, params)
+	}
+	return result, err
 }
 
 const maxRetries = 3
 
-func (c *Client) doRequestCtx(ctx context.Context, method, endpoint string, params url.Values) (map[string]interface{}, error) {
+func (c *Client) doRequestWithRetry(ctx context.Context, method, endpoint string, params url.Values) (map[string]interface{}, error) {
 	fullURL := c.baseURL + "/api/" + strings.TrimLeft(endpoint, "/")
+	isIdempotent := method == http.MethodGet
 
 	var lastErr error
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
+			if !isIdempotent {
+				break
+			}
 			backoff := time.Duration(math.Pow(2, float64(attempt))) * time.Second
 			select {
 			case <-ctx.Done():
@@ -140,11 +177,11 @@ func (c *Client) doRequestCtx(ctx context.Context, method, endpoint string, para
 				req.URL.RawQuery = params.Encode()
 			}
 		case http.MethodPost:
-			var body io.Reader
+			var reqBody io.Reader
 			if params != nil {
-				body = strings.NewReader(params.Encode())
+				reqBody = strings.NewReader(params.Encode())
 			}
-			req, err = http.NewRequestWithContext(ctx, http.MethodPost, fullURL, body)
+			req, err = http.NewRequestWithContext(ctx, http.MethodPost, fullURL, reqBody)
 			if err != nil {
 				return nil, fmt.Errorf("creating request: %w", err)
 			}
@@ -155,7 +192,13 @@ func (c *Client) doRequestCtx(ctx context.Context, method, endpoint string, para
 			return nil, fmt.Errorf("unsupported HTTP method: %s", method)
 		}
 
+		c.mu.Lock()
 		req.Header.Set("Authorization", "Bearer "+c.token)
+		c.mu.Unlock()
+
+		if c.UserAgent != "" {
+			req.Header.Set("User-Agent", c.UserAgent)
+		}
 
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
@@ -170,7 +213,8 @@ func (c *Client) doRequestCtx(ctx context.Context, method, endpoint string, para
 			continue
 		}
 
-		if resp.StatusCode == 429 || resp.StatusCode == 502 || resp.StatusCode == 503 || resp.StatusCode == 504 {
+		if resp.StatusCode == 429 || resp.StatusCode == 500 ||
+			resp.StatusCode == 502 || resp.StatusCode == 503 || resp.StatusCode == 504 {
 			lastErr = fmt.Errorf("HTTP %d from %s: %s", resp.StatusCode, endpoint, truncateBody(respBody, 200))
 			continue
 		}
@@ -195,7 +239,7 @@ func (c *Client) doRequestCtx(ctx context.Context, method, endpoint string, para
 			}
 			return nil, fmt.Errorf("API error from %s: %s", endpoint, errMsg)
 		case "invalid-token":
-			return nil, errors.New("session token is invalid or expired")
+			return nil, errInvalidToken
 		default:
 			return nil, fmt.Errorf("unexpected API status from %s: %s", endpoint, status)
 		}
@@ -204,23 +248,18 @@ func (c *Client) doRequestCtx(ctx context.Context, method, endpoint string, para
 		return response, nil
 	}
 
-	return nil, fmt.Errorf("request to %s failed after %d retries: %w", endpoint, maxRetries, lastErr)
+	return nil, lastErr
 }
 
 // ---------------------------------------------------------------------------
 // Zone CRUD
 // ---------------------------------------------------------------------------
 
-// ListZones returns all authoritative zones hosted on the server.
-func (c *Client) ListZones() (map[string]interface{}, error) {
-	return c.doRequest(http.MethodGet, "zones/list", nil)
+func (c *Client) ListZones(ctx context.Context) (map[string]interface{}, error) {
+	return c.doRequest(ctx, http.MethodGet, "zones/list", nil)
 }
 
-// CreateZone creates a new authoritative zone. The zoneType must be one of
-// Primary, Secondary, Stub, Forwarder, SecondaryForwarder, Catalog, or
-// SecondaryCatalog. Extra params are passed through (e.g. forwarder, protocol
-// for Forwarder zones).
-func (c *Client) CreateZone(zone, zoneType string, extra ...url.Values) (map[string]interface{}, error) {
+func (c *Client) CreateZone(ctx context.Context, zone, zoneType string, extra ...url.Values) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
 	params.Set("type", zoneType)
@@ -231,51 +270,44 @@ func (c *Client) CreateZone(zone, zoneType string, extra ...url.Values) (map[str
 			}
 		}
 	}
-	return c.doRequest(http.MethodPost, "zones/create", params)
+	return c.doRequest(ctx, http.MethodPost, "zones/create", params)
 }
 
-// GetZoneOptions returns zone-specific options.
-func (c *Client) GetZoneOptions(zone string) (map[string]interface{}, error) {
+func (c *Client) GetZoneOptions(ctx context.Context, zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodGet, "zones/options/get", params)
+	return c.doRequest(ctx, http.MethodGet, "zones/options/get", params)
 }
 
-// SetZoneOptions updates zone-specific options.
-func (c *Client) SetZoneOptions(zone string, params url.Values) (map[string]interface{}, error) {
+func (c *Client) SetZoneOptions(ctx context.Context, zone string, params url.Values) (map[string]interface{}, error) {
 	merged := cloneValues(params)
 	merged.Set("zone", zone)
-	return c.doRequest(http.MethodPost, "zones/options/set", merged)
+	return c.doRequest(ctx, http.MethodPost, "zones/options/set", merged)
 }
 
-// DeleteZone permanently deletes an authoritative zone.
-func (c *Client) DeleteZone(zone string) (map[string]interface{}, error) {
+func (c *Client) DeleteZone(ctx context.Context, zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodPost, "zones/delete", params)
+	return c.doRequest(ctx, http.MethodPost, "zones/delete", params)
 }
 
-// EnableZone enables an authoritative zone.
-func (c *Client) EnableZone(zone string) (map[string]interface{}, error) {
+func (c *Client) EnableZone(ctx context.Context, zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodPost, "zones/enable", params)
+	return c.doRequest(ctx, http.MethodPost, "zones/enable", params)
 }
 
-// DisableZone disables an authoritative zone.
-func (c *Client) DisableZone(zone string) (map[string]interface{}, error) {
+func (c *Client) DisableZone(ctx context.Context, zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodPost, "zones/disable", params)
+	return c.doRequest(ctx, http.MethodPost, "zones/disable", params)
 }
 
 // ---------------------------------------------------------------------------
 // Record CRUD
 // ---------------------------------------------------------------------------
 
-// GetRecords returns all records for a domain within an authoritative zone.
-// Set listZone to true to list all records in the zone.
-func (c *Client) GetRecords(domain, zone string, listZone bool) (map[string]interface{}, error) {
+func (c *Client) GetRecords(ctx context.Context, domain, zone string, listZone bool) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("domain", domain)
 	if zone != "" {
@@ -284,111 +316,91 @@ func (c *Client) GetRecords(domain, zone string, listZone bool) (map[string]inte
 	if listZone {
 		params.Set("listZone", "true")
 	}
-	return c.doRequest(http.MethodGet, "zones/records/get", params)
+	return c.doRequest(ctx, http.MethodGet, "zones/records/get", params)
 }
 
-// AddRecord adds a resource record to an authoritative zone. The params
-// must contain at minimum "domain" and "type". Additional fields depend on
-// the record type (e.g. "ipAddress" for A/AAAA, "cname" for CNAME).
-func (c *Client) AddRecord(params url.Values) (map[string]interface{}, error) {
+func (c *Client) AddRecord(ctx context.Context, params url.Values) (map[string]interface{}, error) {
 	if params.Get("domain") == "" {
 		return nil, errors.New("AddRecord: domain parameter is required")
 	}
 	if params.Get("type") == "" {
 		return nil, errors.New("AddRecord: type parameter is required")
 	}
-	return c.doRequest(http.MethodPost, "zones/records/add", params)
+	return c.doRequest(ctx, http.MethodPost, "zones/records/add", params)
 }
 
-// UpdateRecord updates an existing record in an authoritative zone. The
-// params must contain "domain" and "type" at minimum. Additional fields
-// identify the existing record and specify new values.
-func (c *Client) UpdateRecord(params url.Values) (map[string]interface{}, error) {
+func (c *Client) UpdateRecord(ctx context.Context, params url.Values) (map[string]interface{}, error) {
 	if params.Get("domain") == "" {
 		return nil, errors.New("UpdateRecord: domain parameter is required")
 	}
 	if params.Get("type") == "" {
 		return nil, errors.New("UpdateRecord: type parameter is required")
 	}
-	return c.doRequest(http.MethodPost, "zones/records/update", params)
+	return c.doRequest(ctx, http.MethodPost, "zones/records/update", params)
 }
 
-// DeleteRecord deletes a record from an authoritative zone. The params must
-// contain "domain" and "type" at minimum. Additional fields identify which
-// specific record to delete within the record set.
-func (c *Client) DeleteRecord(params url.Values) (map[string]interface{}, error) {
+func (c *Client) DeleteRecord(ctx context.Context, params url.Values) (map[string]interface{}, error) {
 	if params.Get("domain") == "" {
 		return nil, errors.New("DeleteRecord: domain parameter is required")
 	}
 	if params.Get("type") == "" {
 		return nil, errors.New("DeleteRecord: type parameter is required")
 	}
-	return c.doRequest(http.MethodPost, "zones/records/delete", params)
+	return c.doRequest(ctx, http.MethodPost, "zones/records/delete", params)
 }
 
 // ---------------------------------------------------------------------------
 // DHCP Scope
 // ---------------------------------------------------------------------------
 
-// ListDHCPScopes returns all DHCP scopes on the server.
-func (c *Client) ListDHCPScopes() (map[string]interface{}, error) {
-	return c.doRequest(http.MethodGet, "dhcp/scopes/list", nil)
+func (c *Client) ListDHCPScopes(ctx context.Context) (map[string]interface{}, error) {
+	return c.doRequest(ctx, http.MethodGet, "dhcp/scopes/list", nil)
 }
 
-// GetDHCPScope returns the full configuration of a DHCP scope.
-func (c *Client) GetDHCPScope(name string) (map[string]interface{}, error) {
+func (c *Client) GetDHCPScope(ctx context.Context, name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("name", name)
-	return c.doRequest(http.MethodGet, "dhcp/scopes/get", params)
+	return c.doRequest(ctx, http.MethodGet, "dhcp/scopes/get", params)
 }
 
-// SetDHCPScope creates or updates a DHCP scope. The params must contain
-// "name" at minimum. When creating a new scope, "startingAddress",
-// "endingAddress", and "subnetMask" are required.
-func (c *Client) SetDHCPScope(params url.Values) (map[string]interface{}, error) {
+func (c *Client) SetDHCPScope(ctx context.Context, params url.Values) (map[string]interface{}, error) {
 	if params.Get("name") == "" {
 		return nil, errors.New("SetDHCPScope: name parameter is required")
 	}
-	return c.doRequest(http.MethodPost, "dhcp/scopes/set", params)
+	return c.doRequest(ctx, http.MethodPost, "dhcp/scopes/set", params)
 }
 
-// DeleteDHCPScope permanently deletes a DHCP scope.
-func (c *Client) DeleteDHCPScope(name string) (map[string]interface{}, error) {
+func (c *Client) DeleteDHCPScope(ctx context.Context, name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("name", name)
-	return c.doRequest(http.MethodPost, "dhcp/scopes/delete", params)
+	return c.doRequest(ctx, http.MethodPost, "dhcp/scopes/delete", params)
 }
 
-// EnableDHCPScope enables a DHCP scope to allow lease allocation.
-func (c *Client) EnableDHCPScope(name string) (map[string]interface{}, error) {
+func (c *Client) EnableDHCPScope(ctx context.Context, name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("name", name)
-	return c.doRequest(http.MethodPost, "dhcp/scopes/enable", params)
+	return c.doRequest(ctx, http.MethodPost, "dhcp/scopes/enable", params)
 }
 
-// DisableDHCPScope disables a DHCP scope.
-func (c *Client) DisableDHCPScope(name string) (map[string]interface{}, error) {
+func (c *Client) DisableDHCPScope(ctx context.Context, name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("name", name)
-	return c.doRequest(http.MethodPost, "dhcp/scopes/disable", params)
+	return c.doRequest(ctx, http.MethodPost, "dhcp/scopes/disable", params)
 }
 
 // ---------------------------------------------------------------------------
 // DHCP Lease
 // ---------------------------------------------------------------------------
 
-// ListDHCPLeases returns all DHCP leases for a scope. The API endpoint
-// returns leases across all scopes; callers should filter by scope name.
-func (c *Client) ListDHCPLeases(scope string) (map[string]interface{}, error) {
+func (c *Client) ListDHCPLeases(ctx context.Context, scope string) (map[string]interface{}, error) {
 	params := url.Values{}
 	if scope != "" {
 		params.Set("name", scope)
 	}
-	return c.doRequest(http.MethodGet, "dhcp/leases/list", params)
+	return c.doRequest(ctx, http.MethodGet, "dhcp/leases/list", params)
 }
 
-// AddReservedLease adds a reserved lease entry to the specified scope.
-func (c *Client) AddReservedLease(scopeName string, leaseParams url.Values) (map[string]interface{}, error) {
+func (c *Client) AddReservedLease(ctx context.Context, scopeName string, leaseParams url.Values) (map[string]interface{}, error) {
 	if leaseParams.Get("hardwareAddress") == "" {
 		return nil, errors.New("AddReservedLease: hardwareAddress parameter is required")
 	}
@@ -397,157 +409,134 @@ func (c *Client) AddReservedLease(scopeName string, leaseParams url.Values) (map
 	}
 	merged := cloneValues(leaseParams)
 	merged.Set("name", scopeName)
-	return c.doRequest(http.MethodPost, "dhcp/scopes/addReservedLease", merged)
+	return c.doRequest(ctx, http.MethodPost, "dhcp/scopes/addReservedLease", merged)
 }
 
-// RemoveReservedLease removes a reserved lease entry from the specified scope.
-func (c *Client) RemoveReservedLease(scopeName string, leaseParams url.Values) (map[string]interface{}, error) {
+func (c *Client) RemoveReservedLease(ctx context.Context, scopeName string, leaseParams url.Values) (map[string]interface{}, error) {
 	if leaseParams.Get("hardwareAddress") == "" {
 		return nil, errors.New("RemoveReservedLease: hardwareAddress parameter is required")
 	}
 	merged := cloneValues(leaseParams)
 	merged.Set("name", scopeName)
-	return c.doRequest(http.MethodPost, "dhcp/scopes/removeReservedLease", merged)
+	return c.doRequest(ctx, http.MethodPost, "dhcp/scopes/removeReservedLease", merged)
 }
 
 // ---------------------------------------------------------------------------
 // Allowed / Blocked Zones
 // ---------------------------------------------------------------------------
 
-// ListAllowedZones returns all allowed zones. When domain is empty the root
-// is listed, returning top-level zone entries.
-func (c *Client) ListAllowedZones(domain string) (map[string]interface{}, error) {
+func (c *Client) ListAllowedZones(ctx context.Context, domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	if domain != "" {
 		params.Set("domain", domain)
 	}
-	return c.doRequest(http.MethodGet, "allowed/list", params)
+	return c.doRequest(ctx, http.MethodGet, "allowed/list", params)
 }
 
-// AllowZone adds a domain name to the Allowed Zones.
-func (c *Client) AllowZone(domain string) (map[string]interface{}, error) {
+func (c *Client) AllowZone(ctx context.Context, domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("domain", domain)
-	return c.doRequest(http.MethodPost, "allowed/add", params)
+	return c.doRequest(ctx, http.MethodPost, "allowed/add", params)
 }
 
-// DeleteAllowedZone removes a domain from the Allowed Zones.
-func (c *Client) DeleteAllowedZone(domain string) (map[string]interface{}, error) {
+func (c *Client) DeleteAllowedZone(ctx context.Context, domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("domain", domain)
-	return c.doRequest(http.MethodPost, "allowed/delete", params)
+	return c.doRequest(ctx, http.MethodPost, "allowed/delete", params)
 }
 
-// ListBlockedZones returns all blocked zones. When domain is empty the root
-// is listed, returning top-level zone entries.
-func (c *Client) ListBlockedZones(domain string) (map[string]interface{}, error) {
+func (c *Client) ListBlockedZones(ctx context.Context, domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	if domain != "" {
 		params.Set("domain", domain)
 	}
-	return c.doRequest(http.MethodGet, "blocked/list", params)
+	return c.doRequest(ctx, http.MethodGet, "blocked/list", params)
 }
 
-// BlockZone adds a domain name to the Blocked Zones.
-func (c *Client) BlockZone(domain string) (map[string]interface{}, error) {
+func (c *Client) BlockZone(ctx context.Context, domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("domain", domain)
-	return c.doRequest(http.MethodPost, "blocked/add", params)
+	return c.doRequest(ctx, http.MethodPost, "blocked/add", params)
 }
 
-// DeleteBlockedZone removes a domain from the Blocked Zones.
-func (c *Client) DeleteBlockedZone(domain string) (map[string]interface{}, error) {
+func (c *Client) DeleteBlockedZone(ctx context.Context, domain string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("domain", domain)
-	return c.doRequest(http.MethodPost, "blocked/delete", params)
+	return c.doRequest(ctx, http.MethodPost, "blocked/delete", params)
 }
 
 // ---------------------------------------------------------------------------
 // Settings
 // ---------------------------------------------------------------------------
 
-// GetDNSSettings returns the DNS server settings.
-func (c *Client) GetDNSSettings() (map[string]interface{}, error) {
-	return c.doRequest(http.MethodGet, "settings/get", nil)
+func (c *Client) GetDNSSettings(ctx context.Context) (map[string]interface{}, error) {
+	return c.doRequest(ctx, http.MethodGet, "settings/get", nil)
 }
 
-// SetDNSSettings updates the DNS server settings.
-func (c *Client) SetDNSSettings(params url.Values) (map[string]interface{}, error) {
-	return c.doRequest(http.MethodPost, "settings/set", params)
+func (c *Client) SetDNSSettings(ctx context.Context, params url.Values) (map[string]interface{}, error) {
+	return c.doRequest(ctx, http.MethodPost, "settings/set", params)
 }
 
-// GetTSIGKeyNames returns TSIG key names configured on the server.
-func (c *Client) GetTSIGKeyNames() (map[string]interface{}, error) {
-	return c.doRequest(http.MethodGet, "settings/getTsigKeyNames", nil)
+func (c *Client) GetTSIGKeyNames(ctx context.Context) (map[string]interface{}, error) {
+	return c.doRequest(ctx, http.MethodGet, "settings/getTsigKeyNames", nil)
 }
 
-// ListCatalogZones returns the list of catalog zone names.
-func (c *Client) ListCatalogZones() (map[string]interface{}, error) {
-	return c.doRequest(http.MethodGet, "zones/catalogs/list", nil)
+func (c *Client) ListCatalogZones(ctx context.Context) (map[string]interface{}, error) {
+	return c.doRequest(ctx, http.MethodGet, "zones/catalogs/list", nil)
 }
 
 // ---------------------------------------------------------------------------
 // DNS Apps
 // ---------------------------------------------------------------------------
 
-// ListApps returns all installed DNS apps.
-func (c *Client) ListApps() (map[string]interface{}, error) {
-	return c.doRequest(http.MethodGet, "apps/list", nil)
+func (c *Client) ListApps(ctx context.Context) (map[string]interface{}, error) {
+	return c.doRequest(ctx, http.MethodGet, "apps/list", nil)
 }
 
-// GetAppConfig returns the configuration for a DNS app.
-func (c *Client) GetAppConfig(name string) (map[string]interface{}, error) {
+func (c *Client) GetAppConfig(ctx context.Context, name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("name", name)
-	return c.doRequest(http.MethodGet, "apps/getConfig", params)
+	return c.doRequest(ctx, http.MethodGet, "apps/getConfig", params)
 }
 
-// SetAppConfig updates the configuration for a DNS app.
-func (c *Client) SetAppConfig(name string, config string) (map[string]interface{}, error) {
+func (c *Client) SetAppConfig(ctx context.Context, name string, config string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("name", name)
 	params.Set("config", config)
-	return c.doRequest(http.MethodPost, "apps/setConfig", params)
+	return c.doRequest(ctx, http.MethodPost, "apps/setConfig", params)
 }
 
 // ---------------------------------------------------------------------------
 // DNSSEC
 // ---------------------------------------------------------------------------
 
-// SignZone signs an authoritative zone with DNSSEC. The params should include
-// algorithm-specific options (e.g. hashName, kskKeySize, curve).
-func (c *Client) SignZone(zone string, params url.Values) (map[string]interface{}, error) {
+func (c *Client) SignZone(ctx context.Context, zone string, params url.Values) (map[string]interface{}, error) {
 	merged := cloneValues(params)
 	merged.Set("zone", zone)
-	return c.doRequest(http.MethodPost, "zones/dnssec/sign", merged)
+	return c.doRequest(ctx, http.MethodPost, "zones/dnssec/sign", merged)
 }
 
-// UnsignZone removes DNSSEC signing from an authoritative zone.
-func (c *Client) UnsignZone(zone string) (map[string]interface{}, error) {
+func (c *Client) UnsignZone(ctx context.Context, zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodPost, "zones/dnssec/unsign", params)
+	return c.doRequest(ctx, http.MethodPost, "zones/dnssec/unsign", params)
 }
 
-// GetDNSSECProperties returns the DNSSEC properties for a signed zone.
-func (c *Client) GetDNSSECProperties(zone string) (map[string]interface{}, error) {
+func (c *Client) GetDNSSECProperties(ctx context.Context, zone string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("zone", zone)
-	return c.doRequest(http.MethodGet, "zones/dnssec/properties/get", params)
+	return c.doRequest(ctx, http.MethodGet, "zones/dnssec/properties/get", params)
 }
 
 // ---------------------------------------------------------------------------
 // Admin Users
 // ---------------------------------------------------------------------------
 
-// ListUsers returns all admin users on the server.
-func (c *Client) ListUsers() (map[string]interface{}, error) {
-	return c.doRequest(http.MethodGet, "admin/users/list", nil)
+func (c *Client) ListUsers(ctx context.Context) (map[string]interface{}, error) {
+	return c.doRequest(ctx, http.MethodGet, "admin/users/list", nil)
 }
 
-// CreateUser creates a new admin user. Extra params are passed through for
-// optional fields like displayName.
-func (c *Client) CreateUser(username, password string, extra ...url.Values) (map[string]interface{}, error) {
+func (c *Client) CreateUser(ctx context.Context, username, password string, extra ...url.Values) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("user", username)
 	params.Set("pass", password)
@@ -558,88 +547,78 @@ func (c *Client) CreateUser(username, password string, extra ...url.Values) (map
 			}
 		}
 	}
-	return c.doRequest(http.MethodPost, "admin/users/create", params)
+	return c.doRequest(ctx, http.MethodPost, "admin/users/create", params)
 }
 
-// GetUserDetails returns details for an admin user including group memberships.
-func (c *Client) GetUserDetails(username string) (map[string]interface{}, error) {
+func (c *Client) GetUserDetails(ctx context.Context, username string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("user", username)
 	params.Set("includeGroups", "true")
-	return c.doRequest(http.MethodGet, "admin/users/get", params)
+	return c.doRequest(ctx, http.MethodGet, "admin/users/get", params)
 }
 
-// SetUserDetails updates properties of an admin user.
-func (c *Client) SetUserDetails(username string, params url.Values) (map[string]interface{}, error) {
+func (c *Client) SetUserDetails(ctx context.Context, username string, params url.Values) (map[string]interface{}, error) {
 	merged := cloneValues(params)
 	merged.Set("user", username)
-	return c.doRequest(http.MethodPost, "admin/users/set", merged)
+	return c.doRequest(ctx, http.MethodPost, "admin/users/set", merged)
 }
 
-// DeleteUser deletes an admin user.
-func (c *Client) DeleteUser(username string) (map[string]interface{}, error) {
+func (c *Client) DeleteUser(ctx context.Context, username string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("user", username)
-	return c.doRequest(http.MethodPost, "admin/users/delete", params)
+	return c.doRequest(ctx, http.MethodPost, "admin/users/delete", params)
 }
 
 // ---------------------------------------------------------------------------
 // Admin Groups
 // ---------------------------------------------------------------------------
 
-// ListGroups returns all admin groups on the server.
-func (c *Client) ListGroups() (map[string]interface{}, error) {
-	return c.doRequest(http.MethodGet, "admin/groups/list", nil)
+func (c *Client) ListGroups(ctx context.Context) (map[string]interface{}, error) {
+	return c.doRequest(ctx, http.MethodGet, "admin/groups/list", nil)
 }
 
-// CreateGroup creates a new admin group.
-func (c *Client) CreateGroup(name string, description string) (map[string]interface{}, error) {
+func (c *Client) CreateGroup(ctx context.Context, name string, description string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("group", name)
 	if description != "" {
 		params.Set("description", description)
 	}
-	return c.doRequest(http.MethodPost, "admin/groups/create", params)
+	return c.doRequest(ctx, http.MethodPost, "admin/groups/create", params)
 }
 
-// GetGroupDetails returns details for an admin group including members.
-func (c *Client) GetGroupDetails(name string) (map[string]interface{}, error) {
+func (c *Client) GetGroupDetails(ctx context.Context, name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("group", name)
 	params.Set("includeUsers", "true")
-	return c.doRequest(http.MethodGet, "admin/groups/get", params)
+	return c.doRequest(ctx, http.MethodGet, "admin/groups/get", params)
 }
 
-// SetGroupDetails updates properties of an admin group.
-func (c *Client) SetGroupDetails(name string, params url.Values) (map[string]interface{}, error) {
+func (c *Client) SetGroupDetails(ctx context.Context, name string, params url.Values) (map[string]interface{}, error) {
 	merged := cloneValues(params)
 	merged.Set("group", name)
-	return c.doRequest(http.MethodPost, "admin/groups/set", merged)
+	return c.doRequest(ctx, http.MethodPost, "admin/groups/set", merged)
 }
 
-// DeleteGroup deletes an admin group.
-func (c *Client) DeleteGroup(name string) (map[string]interface{}, error) {
+func (c *Client) DeleteGroup(ctx context.Context, name string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("group", name)
-	return c.doRequest(http.MethodPost, "admin/groups/delete", params)
+	return c.doRequest(ctx, http.MethodPost, "admin/groups/delete", params)
 }
 
 // ---------------------------------------------------------------------------
 // Admin Permissions
 // ---------------------------------------------------------------------------
 
-// GetPermissions returns the permission configuration for a section.
-func (c *Client) GetPermissions(section string) (map[string]interface{}, error) {
+func (c *Client) GetPermissions(ctx context.Context, section string) (map[string]interface{}, error) {
 	params := url.Values{}
 	params.Set("section", section)
-	return c.doRequest(http.MethodGet, "admin/permissions/get", params)
+	return c.doRequest(ctx, http.MethodGet, "admin/permissions/get", params)
 }
 
-// SetPermissions updates the permission configuration for a section.
-func (c *Client) SetPermissions(section string, params url.Values) (map[string]interface{}, error) {
+func (c *Client) SetPermissions(ctx context.Context, section string, params url.Values) (map[string]interface{}, error) {
 	merged := cloneValues(params)
 	merged.Set("section", section)
-	return c.doRequest(http.MethodPost, "admin/permissions/set", merged)
+	return c.doRequest(ctx, http.MethodPost, "admin/permissions/set", merged)
 }
 
 func truncateBody(body []byte, maxLen int) string {

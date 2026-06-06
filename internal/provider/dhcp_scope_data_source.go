@@ -27,8 +27,8 @@ type dhcpScopesDataSourceModel struct {
 type dhcpScopeDataModel struct {
 	Name             types.String `tfsdk:"name"`
 	Enabled          types.Bool   `tfsdk:"enabled"`
-	StartingAddress  types.String `tfsdk:"starting_address"`
-	EndingAddress    types.String `tfsdk:"ending_address"`
+	StartAddress     types.String `tfsdk:"start_address"`
+	EndAddress       types.String `tfsdk:"end_address"`
 	SubnetMask       types.String `tfsdk:"subnet_mask"`
 	NetworkAddress   types.String `tfsdk:"network_address"`
 	BroadcastAddress types.String `tfsdk:"broadcast_address"`
@@ -55,12 +55,12 @@ func (d *dhcpScopesDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							Description: "Whether the DHCP scope is enabled.",
 							Computed:    true,
 						},
-						"starting_address": schema.StringAttribute{
-							Description: "The starting IP address of the DHCP range.",
+						"start_address": schema.StringAttribute{
+							Description: "The start IP address of the DHCP range.",
 							Computed:    true,
 						},
-						"ending_address": schema.StringAttribute{
-							Description: "The ending IP address of the DHCP range.",
+						"end_address": schema.StringAttribute{
+							Description: "The end IP address of the DHCP range.",
 							Computed:    true,
 						},
 						"subnet_mask": schema.StringAttribute{
@@ -100,7 +100,7 @@ func (d *dhcpScopesDataSource) Configure(_ context.Context, req datasource.Confi
 }
 
 func (d *dhcpScopesDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
-	result, err := d.client.ListDHCPScopes()
+	result, err := d.client.ListDHCPScopes(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading DHCP Scopes",
@@ -120,12 +120,22 @@ func (d *dhcpScopesDataSource) Read(ctx context.Context, _ datasource.ReadReques
 	}
 
 	for _, entry := range scopeList {
-		s := entry.(map[string]interface{})
+		s, ok := entry.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		name, _ := s["name"].(string)
+		startAddr, _ := s["startingAddress"].(string)
+		endAddr, _ := s["endingAddress"].(string)
+		mask, _ := s["subnetMask"].(string)
+		if name == "" {
+			continue
+		}
 		scope := dhcpScopeDataModel{
-			Name:            types.StringValue(s["name"].(string)),
-			StartingAddress: types.StringValue(s["startingAddress"].(string)),
-			EndingAddress:   types.StringValue(s["endingAddress"].(string)),
-			SubnetMask:      types.StringValue(s["subnetMask"].(string)),
+			Name:         types.StringValue(name),
+			StartAddress: types.StringValue(startAddr),
+			EndAddress:   types.StringValue(endAddr),
+			SubnetMask:   types.StringValue(mask),
 		}
 
 		if v, ok := s["enabled"].(bool); ok {

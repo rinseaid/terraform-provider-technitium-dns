@@ -95,7 +95,7 @@ func (r *adminGroupResource) Create(ctx context.Context, req resource.CreateRequ
 		"name": name,
 	})
 
-	_, err := r.client.CreateGroup(name, description)
+	_, err := r.client.CreateGroup(ctx, name, description)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating Admin Group",
@@ -108,7 +108,7 @@ func (r *adminGroupResource) Create(ctx context.Context, req resource.CreateRequ
 	if !plan.Members.IsNull() && !plan.Members.IsUnknown() && plan.Members.ValueString() != "" {
 		setParams := url.Values{}
 		setParams.Set("members", plan.Members.ValueString())
-		_, err := r.client.SetGroupDetails(name, setParams)
+		_, err := r.client.SetGroupDetails(ctx, name, setParams)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error Setting Admin Group Members",
@@ -119,7 +119,7 @@ func (r *adminGroupResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Read back.
-	readResp, err := r.client.GetGroupDetails(name)
+	readResp, err := r.client.GetGroupDetails(ctx, name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Admin Group",
@@ -141,9 +141,16 @@ func (r *adminGroupResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	name := state.Name.ValueString()
 
-	readResp, err := r.client.GetGroupDetails(name)
+	readResp, err := r.client.GetGroupDetails(ctx, name)
 	if err != nil {
-		resp.State.RemoveResource(ctx)
+		if strings.Contains(err.Error(), "was not found") {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError(
+			"Error Reading Admin Group",
+			fmt.Sprintf("Could not read group %q: %s", name, err),
+		)
 		return
 	}
 
@@ -178,7 +185,7 @@ func (r *adminGroupResource) Update(ctx context.Context, req resource.UpdateRequ
 		params.Set("members", "")
 	}
 
-	_, err := r.client.SetGroupDetails(name, params)
+	_, err := r.client.SetGroupDetails(ctx, name, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating Admin Group",
@@ -188,7 +195,7 @@ func (r *adminGroupResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	// Read back.
-	readResp, err := r.client.GetGroupDetails(name)
+	readResp, err := r.client.GetGroupDetails(ctx, name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Admin Group",
@@ -214,7 +221,7 @@ func (r *adminGroupResource) Delete(ctx context.Context, req resource.DeleteRequ
 		"name": name,
 	})
 
-	_, err := r.client.DeleteGroup(name)
+	_, err := r.client.DeleteGroup(ctx, name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting Admin Group",
@@ -226,7 +233,7 @@ func (r *adminGroupResource) Delete(ctx context.Context, req resource.DeleteRequ
 func (r *adminGroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	name := req.ID
 
-	readResp, err := r.client.GetGroupDetails(name)
+	readResp, err := r.client.GetGroupDetails(ctx, name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Importing Admin Group",

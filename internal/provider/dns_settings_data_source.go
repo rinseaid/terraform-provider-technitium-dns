@@ -23,14 +23,19 @@ type dnsSettingsDataSource struct {
 
 type dnsSettingsDataSourceModel struct {
 	DnsServerDomain                           types.String `tfsdk:"dns_server_domain"`
+	DefaultRecordTtl                          types.Int64  `tfsdk:"default_record_ttl"`
 	DnssecValidation                          types.Bool   `tfsdk:"dnssec_validation"`
 	Recursion                                 types.String `tfsdk:"recursion"`
+	QnameMinimization                         types.Bool   `tfsdk:"qname_minimization"`
+	RandomizeName                             types.Bool   `tfsdk:"randomize_name"`
 	PreferIPv6                                types.Bool   `tfsdk:"prefer_ipv6"`
 	EnableBlocking                            types.Bool   `tfsdk:"enable_blocking"`
 	BlockingType                              types.String `tfsdk:"blocking_type"`
+	BlockListUrls                             types.List   `tfsdk:"block_list_urls"`
 	Forwarders                                types.List   `tfsdk:"forwarders"`
 	ForwarderProtocol                         types.String `tfsdk:"forwarder_protocol"`
 	EnableLogging                             types.Bool   `tfsdk:"enable_logging"`
+	MaxLogFileDays                            types.Int64  `tfsdk:"max_log_file_days"`
 	LogQueries                                types.Bool   `tfsdk:"log_queries"`
 	AllowTxtBlockingReport                    types.Bool   `tfsdk:"allow_txt_blocking_report"`
 	BlockingAnswerTtl                         types.Int64  `tfsdk:"blocking_answer_ttl"`
@@ -39,8 +44,13 @@ type dnsSettingsDataSourceModel struct {
 	CachePrefetchTrigger                      types.Int64  `tfsdk:"cache_prefetch_trigger"`
 	CachePrefetchSampleIntervalMinutes        types.Int64  `tfsdk:"cache_prefetch_sample_interval_minutes"`
 	CachePrefetchSampleEligibilityHitsPerHour types.Int64  `tfsdk:"cache_prefetch_sample_eligibility_hits_per_hour"`
+	CacheMaximumEntries                       types.Int64  `tfsdk:"cache_maximum_entries"`
+	CacheMinimumRecordTtl                     types.Int64  `tfsdk:"cache_minimum_record_ttl"`
+	CacheMaximumRecordTtl                     types.Int64  `tfsdk:"cache_maximum_record_ttl"`
+	CacheNegativeRecordTtl                    types.Int64  `tfsdk:"cache_negative_record_ttl"`
 	CacheFailureRecordTtl                     types.Int64  `tfsdk:"cache_failure_record_ttl"`
 	SaveCache                                 types.Bool   `tfsdk:"save_cache"`
+	ServeStale                                types.Bool   `tfsdk:"serve_stale"`
 	ServeStaleTtl                             types.Int64  `tfsdk:"serve_stale_ttl"`
 	ServeStaleAnswerTtl                       types.Int64  `tfsdk:"serve_stale_answer_ttl"`
 	ServeStaleMaxWaitTime                     types.Int64  `tfsdk:"serve_stale_max_wait_time"`
@@ -128,12 +138,24 @@ func (d *dnsSettingsDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Description: "The primary domain name used by the DNS server.",
 				Computed:    true,
 			},
+			"default_record_ttl": schema.Int64Attribute{
+				Description: "Default TTL in seconds for new records.",
+				Computed:    true,
+			},
 			"dnssec_validation": schema.BoolAttribute{
 				Description: "Whether DNSSEC validation is enabled.",
 				Computed:    true,
 			},
 			"recursion": schema.StringAttribute{
 				Description: "The recursion policy.",
+				Computed:    true,
+			},
+			"qname_minimization": schema.BoolAttribute{
+				Description: "Whether QNAME minimization is enabled for recursive queries.",
+				Computed:    true,
+			},
+			"randomize_name": schema.BoolAttribute{
+				Description: "Whether query name casing is randomized for cache poisoning protection.",
 				Computed:    true,
 			},
 			"prefer_ipv6": schema.BoolAttribute{
@@ -148,6 +170,11 @@ func (d *dnsSettingsDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Description: "How blocked queries are answered.",
 				Computed:    true,
 			},
+			"block_list_urls": schema.ListAttribute{
+				Description: "List of block list URLs.",
+				Computed:    true,
+				ElementType: types.StringType,
+			},
 			"forwarders": schema.ListAttribute{
 				Description: "List of forwarder DNS server addresses.",
 				Computed:    true,
@@ -159,6 +186,10 @@ func (d *dnsSettingsDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 			},
 			"enable_logging": schema.BoolAttribute{
 				Description: "Whether DNS query logging is enabled.",
+				Computed:    true,
+			},
+			"max_log_file_days": schema.Int64Attribute{
+				Description: "Maximum number of days to keep log files.",
 				Computed:    true,
 			},
 			"log_queries": schema.BoolAttribute{
@@ -193,12 +224,32 @@ func (d *dnsSettingsDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Description: "Minimum hits per hour for a record to be eligible for prefetch sampling.",
 				Computed:    true,
 			},
+			"cache_maximum_entries": schema.Int64Attribute{
+				Description: "Maximum number of entries in the DNS cache.",
+				Computed:    true,
+			},
+			"cache_minimum_record_ttl": schema.Int64Attribute{
+				Description: "Minimum TTL in seconds for cached records.",
+				Computed:    true,
+			},
+			"cache_maximum_record_ttl": schema.Int64Attribute{
+				Description: "Maximum TTL in seconds for cached records.",
+				Computed:    true,
+			},
+			"cache_negative_record_ttl": schema.Int64Attribute{
+				Description: "TTL in seconds for negative cached records.",
+				Computed:    true,
+			},
 			"cache_failure_record_ttl": schema.Int64Attribute{
 				Description: "TTL in seconds for cached failure records.",
 				Computed:    true,
 			},
 			"save_cache": schema.BoolAttribute{
 				Description: "Whether DNS cache is saved to disk on shutdown.",
+				Computed:    true,
+			},
+			"serve_stale": schema.BoolAttribute{
+				Description: "Whether stale cached records are served when upstream is unavailable.",
 				Computed:    true,
 			},
 			"serve_stale_ttl": schema.Int64Attribute{
@@ -521,7 +572,7 @@ func (d *dnsSettingsDataSource) Configure(_ context.Context, req datasource.Conf
 func (d *dnsSettingsDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	tflog.Debug(ctx, "Reading DNS settings data source")
 
-	response, err := d.client.GetDNSSettings()
+	response, err := d.client.GetDNSSettings(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading DNS Settings",
@@ -538,6 +589,12 @@ func (d *dnsSettingsDataSource) Read(ctx context.Context, _ datasource.ReadReque
 		state.DnsServerDomain = types.StringNull()
 	}
 
+	if v, ok := response["defaultRecordTtl"].(float64); ok {
+		state.DefaultRecordTtl = types.Int64Value(int64(v))
+	} else {
+		state.DefaultRecordTtl = types.Int64Null()
+	}
+
 	if v, ok := response["dnssecValidation"].(bool); ok {
 		state.DnssecValidation = types.BoolValue(v)
 	} else {
@@ -548,6 +605,18 @@ func (d *dnsSettingsDataSource) Read(ctx context.Context, _ datasource.ReadReque
 		state.Recursion = types.StringValue(v)
 	} else {
 		state.Recursion = types.StringNull()
+	}
+
+	if v, ok := response["qnameMinimization"].(bool); ok {
+		state.QnameMinimization = types.BoolValue(v)
+	} else {
+		state.QnameMinimization = types.BoolNull()
+	}
+
+	if v, ok := response["randomizeName"].(bool); ok {
+		state.RandomizeName = types.BoolValue(v)
+	} else {
+		state.RandomizeName = types.BoolNull()
 	}
 
 	if v, ok := response["preferIPv6"].(bool); ok {
@@ -568,6 +637,18 @@ func (d *dnsSettingsDataSource) Read(ctx context.Context, _ datasource.ReadReque
 		state.BlockingType = types.StringNull()
 	}
 
+	if v, ok := response["blockListUrls"].([]interface{}); ok {
+		urls := make([]string, len(v))
+		for i, u := range v {
+			urls[i], _ = u.(string)
+		}
+		listVal, diags := types.ListValueFrom(ctx, types.StringType, urls)
+		resp.Diagnostics.Append(diags...)
+		state.BlockListUrls = listVal
+	} else {
+		state.BlockListUrls = types.ListNull(types.StringType)
+	}
+
 	if v, ok := response["forwarderProtocol"].(string); ok {
 		state.ForwarderProtocol = types.StringValue(v)
 	} else {
@@ -578,6 +659,12 @@ func (d *dnsSettingsDataSource) Read(ctx context.Context, _ datasource.ReadReque
 		state.EnableLogging = types.BoolValue(v)
 	} else {
 		state.EnableLogging = types.BoolNull()
+	}
+
+	if v, ok := response["maxLogFileDays"].(float64); ok {
+		state.MaxLogFileDays = types.Int64Value(int64(v))
+	} else {
+		state.MaxLogFileDays = types.Int64Null()
 	}
 
 	if v, ok := response["logQueries"].(bool); ok {
@@ -628,6 +715,30 @@ func (d *dnsSettingsDataSource) Read(ctx context.Context, _ datasource.ReadReque
 		state.CachePrefetchSampleEligibilityHitsPerHour = types.Int64Null()
 	}
 
+	if v, ok := response["cacheMaximumEntries"].(float64); ok {
+		state.CacheMaximumEntries = types.Int64Value(int64(v))
+	} else {
+		state.CacheMaximumEntries = types.Int64Null()
+	}
+
+	if v, ok := response["cacheMinimumRecordTtl"].(float64); ok {
+		state.CacheMinimumRecordTtl = types.Int64Value(int64(v))
+	} else {
+		state.CacheMinimumRecordTtl = types.Int64Null()
+	}
+
+	if v, ok := response["cacheMaximumRecordTtl"].(float64); ok {
+		state.CacheMaximumRecordTtl = types.Int64Value(int64(v))
+	} else {
+		state.CacheMaximumRecordTtl = types.Int64Null()
+	}
+
+	if v, ok := response["cacheNegativeRecordTtl"].(float64); ok {
+		state.CacheNegativeRecordTtl = types.Int64Value(int64(v))
+	} else {
+		state.CacheNegativeRecordTtl = types.Int64Null()
+	}
+
 	if v, ok := response["cacheFailureRecordTtl"].(float64); ok {
 		state.CacheFailureRecordTtl = types.Int64Value(int64(v))
 	} else {
@@ -638,6 +749,12 @@ func (d *dnsSettingsDataSource) Read(ctx context.Context, _ datasource.ReadReque
 		state.SaveCache = types.BoolValue(v)
 	} else {
 		state.SaveCache = types.BoolNull()
+	}
+
+	if v, ok := response["serveStale"].(bool); ok {
+		state.ServeStale = types.BoolValue(v)
+	} else {
+		state.ServeStale = types.BoolNull()
 	}
 
 	if v, ok := response["serveStaleTtl"].(float64); ok {

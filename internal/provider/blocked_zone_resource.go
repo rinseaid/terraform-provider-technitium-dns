@@ -79,7 +79,7 @@ func (r *blockedZoneResource) Create(ctx context.Context, req resource.CreateReq
 		"domain": domain,
 	})
 
-	_, err := r.client.BlockZone(domain)
+	_, err := r.client.BlockZone(ctx, domain)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating Blocked Zone",
@@ -100,7 +100,7 @@ func (r *blockedZoneResource) Read(ctx context.Context, req resource.ReadRequest
 
 	domain := state.Domain.ValueString()
 
-	result, err := r.client.ListBlockedZones(domain)
+	result, err := r.client.ListBlockedZones(ctx, domain)
 	if err != nil {
 		resp.State.RemoveResource(ctx)
 		return
@@ -137,7 +137,7 @@ func (r *blockedZoneResource) Delete(ctx context.Context, req resource.DeleteReq
 		"domain": domain,
 	})
 
-	_, err := r.client.DeleteBlockedZone(domain)
+	_, err := r.client.DeleteBlockedZone(ctx, domain)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting Blocked Zone",
@@ -152,7 +152,7 @@ func (r *blockedZoneResource) ImportState(ctx context.Context, req resource.Impo
 	}
 
 	// Verify the zone exists.
-	_, err := r.client.ListBlockedZones(req.ID)
+	_, err := r.client.ListBlockedZones(ctx, req.ID)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Importing Blocked Zone",

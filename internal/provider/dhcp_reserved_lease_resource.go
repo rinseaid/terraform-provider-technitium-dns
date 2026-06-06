@@ -117,7 +117,7 @@ func (r *dhcpReservedLeaseResource) Create(ctx context.Context, req resource.Cre
 		"hardware_address": plan.HardwareAddress.ValueString(),
 	})
 
-	_, err := r.client.AddReservedLease(scopeName, params)
+	_, err := r.client.AddReservedLease(ctx, scopeName, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating DHCP Reserved Lease",
@@ -182,7 +182,7 @@ func (r *dhcpReservedLeaseResource) Update(ctx context.Context, req resource.Upd
 	// The API does not support in-place updates for reserved leases.
 	removeParams := url.Values{}
 	removeParams.Set("hardwareAddress", mac)
-	_, err := r.client.RemoveReservedLease(scopeName, removeParams)
+	_, err := r.client.RemoveReservedLease(ctx, scopeName, removeParams)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating DHCP Reserved Lease",
@@ -192,7 +192,7 @@ func (r *dhcpReservedLeaseResource) Update(ctx context.Context, req resource.Upd
 	}
 
 	addParams := r.buildAddParams(&plan)
-	_, err = r.client.AddReservedLease(scopeName, addParams)
+	_, err = r.client.AddReservedLease(ctx, scopeName, addParams)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating DHCP Reserved Lease",
@@ -231,7 +231,7 @@ func (r *dhcpReservedLeaseResource) Delete(ctx context.Context, req resource.Del
 
 	params := url.Values{}
 	params.Set("hardwareAddress", mac)
-	_, err := r.client.RemoveReservedLease(scopeName, params)
+	_, err := r.client.RemoveReservedLease(ctx, scopeName, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting DHCP Reserved Lease",
@@ -314,11 +314,11 @@ func (r *dhcpReservedLeaseResource) buildAddParams(model *dhcpReservedLeaseResou
 	return params
 }
 
-func (r *dhcpReservedLeaseResource) readIntoModel(_ context.Context, model *dhcpReservedLeaseResourceModel) (diags diag.Diagnostics) {
+func (r *dhcpReservedLeaseResource) readIntoModel(ctx context.Context, model *dhcpReservedLeaseResourceModel) (diags diag.Diagnostics) {
 	scopeName := model.ScopeName.ValueString()
 	mac := normalizeMAC(model.HardwareAddress.ValueString())
 
-	scopeData, err := r.client.GetDHCPScope(scopeName)
+	scopeData, err := r.client.GetDHCPScope(ctx, scopeName)
 	if err != nil {
 		diags.AddError(
 			"Error Reading DHCP Scope",

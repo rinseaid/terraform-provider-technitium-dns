@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -209,7 +210,7 @@ func testAccCheckDHCPScopeDestroy(name string) resource.TestCheckFunc {
 			return fmt.Errorf("creating client for destroy check: %s", err)
 		}
 
-		_, err = c.GetDHCPScope(name)
+		_, err = c.GetDHCPScope(context.Background(), name)
 		if err == nil {
 			return fmt.Errorf("DHCP scope %q still exists after destroy", name)
 		}

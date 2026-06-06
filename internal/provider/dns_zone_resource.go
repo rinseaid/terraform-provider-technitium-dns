@@ -48,6 +48,8 @@ type dnsZoneResourceModel struct {
 	PrimaryNameServerAddresses  types.String `tfsdk:"primary_name_server_addresses"`
 	PrimaryZoneTransferProtocol types.String `tfsdk:"primary_zone_transfer_protocol"`
 	PrimaryZoneTransferTSIGKey  types.String `tfsdk:"primary_zone_transfer_tsig_key"`
+	Forwarder                   types.String `tfsdk:"forwarder"`
+	ForwarderProtocol           types.String `tfsdk:"forwarder_protocol"`
 }
 
 func (r *dnsZoneResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -78,6 +80,9 @@ func (r *dnsZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						"Catalog",
 						"SecondaryCatalog",
 					),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"disabled": schema.BoolAttribute{
@@ -137,6 +142,25 @@ func (r *dnsZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Description: "TSIG key name for zone transfers on Secondary, SecondaryForwarder, and SecondaryCatalog zones.",
 				Optional:    true,
 			},
+			"forwarder": schema.StringAttribute{
+				Description: "The forwarder address for Forwarder zones. Use 'this-server' to forward internally. Defaults to 'this-server'.",
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"forwarder_protocol": schema.StringAttribute{
+				Description: "DNS transport protocol for Forwarder zones. Valid values: Udp, Tcp, Tls, Https, Quic. Defaults to Udp.",
+				Optional:    true,
+				Computed:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("Udp", "Tcp", "Tls", "Https", "Quic"),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -175,8 +199,16 @@ func (r *dnsZoneResource) Create(ctx context.Context, req resource.CreateRequest
 	zoneType := plan.Type.ValueString()
 	if zoneType == "Forwarder" || zoneType == "SecondaryForwarder" {
 		createExtra = url.Values{}
-		createExtra.Set("forwarder", "this-server")
-		createExtra.Set("protocol", "Udp")
+		forwarder := "this-server"
+		if !plan.Forwarder.IsNull() && !plan.Forwarder.IsUnknown() {
+			forwarder = plan.Forwarder.ValueString()
+		}
+		createExtra.Set("forwarder", forwarder)
+		protocol := "Udp"
+		if !plan.ForwarderProtocol.IsNull() && !plan.ForwarderProtocol.IsUnknown() {
+			protocol = plan.ForwarderProtocol.ValueString()
+		}
+		createExtra.Set("protocol", protocol)
 	}
 	if zoneType == "Secondary" || zoneType == "SecondaryForwarder" || zoneType == "SecondaryCatalog" || zoneType == "Stub" {
 		if createExtra == nil {
@@ -192,7 +224,7 @@ func (r *dnsZoneResource) Create(ctx context.Context, req resource.CreateRequest
 			createExtra.Set("tsigKeyName", plan.PrimaryZoneTransferTSIGKey.ValueString())
 		}
 	}
-	_, err := r.client.CreateZone(plan.Name.ValueString(), zoneType, createExtra)
+	_, err := r.client.CreateZone(ctx, plan.Name.ValueString(), zoneType, createExtra)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating DNS Zone",
@@ -233,7 +265,7 @@ func (r *dnsZoneResource) Create(ctx context.Context, req resource.CreateRequest
 		hasOpts = true
 	}
 	if hasOpts {
-		_, err = r.client.SetZoneOptions(plan.Name.ValueString(), opts)
+		_, err = r.client.SetZoneOptions(ctx, plan.Name.ValueString(), opts)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error Setting DNS Zone Options",
@@ -245,7 +277,7 @@ func (r *dnsZoneResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// Zones are created enabled by default. Disable if requested.
 	if plan.Disabled.ValueBool() {
-		_, err = r.client.DisableZone(plan.Name.ValueString())
+		_, err = r.client.DisableZone(ctx, plan.Name.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error Disabling DNS Zone",
@@ -274,9 +306,14 @@ func (r *dnsZoneResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	diags = r.readIntoModel(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		resp.State.RemoveResource(ctx)
+	if diags.HasError() {
+		for _, d := range diags {
+			if strings.Contains(d.Detail(), "was not found") {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+		}
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
@@ -303,10 +340,6 @@ func (r *dnsZoneResource) Update(ctx context.Context, req resource.UpdateRequest
 	params := url.Values{}
 	needsUpdate := false
 
-	if !plan.Type.Equal(state.Type) {
-		params.Set("type", plan.Type.ValueString())
-		needsUpdate = true
-	}
 	if !plan.ZoneTransfer.Equal(state.ZoneTransfer) && !plan.ZoneTransfer.IsNull() {
 		params.Set("zoneTransfer", plan.ZoneTransfer.ValueString())
 		needsUpdate = true
@@ -371,7 +404,7 @@ func (r *dnsZoneResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	if needsUpdate {
-		_, err := r.client.SetZoneOptions(zoneName, params)
+		_, err := r.client.SetZoneOptions(ctx, zoneName, params)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error Updating DNS Zone Options",
@@ -384,7 +417,7 @@ func (r *dnsZoneResource) Update(ctx context.Context, req resource.UpdateRequest
 	// Update disabled state if changed.
 	if !plan.Disabled.Equal(state.Disabled) {
 		if plan.Disabled.ValueBool() {
-			_, err := r.client.DisableZone(zoneName)
+			_, err := r.client.DisableZone(ctx, zoneName)
 			if err != nil {
 				resp.Diagnostics.AddError(
 					"Error Disabling DNS Zone",
@@ -393,7 +426,7 @@ func (r *dnsZoneResource) Update(ctx context.Context, req resource.UpdateRequest
 				return
 			}
 		} else {
-			_, err := r.client.EnableZone(zoneName)
+			_, err := r.client.EnableZone(ctx, zoneName)
 			if err != nil {
 				resp.Diagnostics.AddError(
 					"Error Enabling DNS Zone",
@@ -424,7 +457,7 @@ func (r *dnsZoneResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 	tflog.Debug(ctx, "Deleting DNS zone", map[string]interface{}{"zone": state.Name.ValueString()})
 
-	_, err := r.client.DeleteZone(state.Name.ValueString())
+	_, err := r.client.DeleteZone(ctx, state.Name.ValueString())
 	if err != nil {
 		if strings.Contains(err.Error(), "was not found") || strings.Contains(err.Error(), "No such zone") {
 			return
@@ -446,7 +479,7 @@ func (r *dnsZoneResource) readIntoModel(ctx context.Context, model *dnsZoneResou
 
 	tflog.Debug(ctx, "Reading DNS zone", map[string]interface{}{"zone": zoneName})
 
-	response, err := r.client.GetZoneOptions(zoneName)
+	response, err := r.client.GetZoneOptions(ctx, zoneName)
 	if err != nil {
 		diags.AddError(
 			"Error Reading DNS Zone",
@@ -529,6 +562,10 @@ func (r *dnsZoneResource) readIntoModel(ctx context.Context, model *dnsZoneResou
 	} else if !model.PrimaryZoneTransferTSIGKey.IsNull() {
 		model.PrimaryZoneTransferTSIGKey = types.StringNull()
 	}
+
+	// forwarder and forwarder_protocol are create-time parameters stored as
+	// FWD records, not returned by zones/options/get. UseStateForUnknown
+	// preserves them from the plan; on import they remain null.
 
 	return
 }

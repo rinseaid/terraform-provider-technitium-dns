@@ -97,7 +97,7 @@ func (r *catalogZoneMembershipResource) Create(ctx context.Context, req resource
 
 	params := url.Values{}
 	params.Set("catalog", catalogZone)
-	_, err := r.client.SetZoneOptions(zoneName, params)
+	_, err := r.client.SetZoneOptions(ctx, zoneName, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Setting Catalog Zone Membership",
@@ -149,7 +149,7 @@ func (r *catalogZoneMembershipResource) Update(ctx context.Context, req resource
 
 	params := url.Values{}
 	params.Set("catalog", catalogZone)
-	_, err := r.client.SetZoneOptions(zoneName, params)
+	_, err := r.client.SetZoneOptions(ctx, zoneName, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating Catalog Zone Membership",
@@ -182,7 +182,7 @@ func (r *catalogZoneMembershipResource) Delete(ctx context.Context, req resource
 
 	params := url.Values{}
 	params.Set("catalog", "")
-	_, err := r.client.SetZoneOptions(zoneName, params)
+	_, err := r.client.SetZoneOptions(ctx, zoneName, params)
 	if err != nil {
 		// If the zone no longer exists (deleted out-of-band), treat as success.
 		if strings.Contains(err.Error(), "was not found") {
@@ -205,7 +205,7 @@ func (r *catalogZoneMembershipResource) readIntoModel(ctx context.Context, model
 
 	tflog.Debug(ctx, "Reading catalog zone membership", map[string]interface{}{"zone": zoneName})
 
-	response, err := r.client.GetZoneOptions(zoneName)
+	response, err := r.client.GetZoneOptions(ctx, zoneName)
 	if err != nil {
 		diags.AddError(
 			"Error Reading Catalog Zone Membership",

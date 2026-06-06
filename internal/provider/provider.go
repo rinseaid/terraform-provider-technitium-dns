@@ -72,7 +72,7 @@ func (p *TechnitiumProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 				Sensitive: true,
 			},
 			"timeout": schema.Int64Attribute{
-				Description: "HTTP request timeout in seconds. Defaults to 30.",
+				Description: "HTTP request timeout in seconds. Defaults to 30 if not set.",
 				Optional:    true,
 			},
 		},
@@ -105,6 +105,32 @@ func (p *TechnitiumProvider) Configure(ctx context.Context, req provider.Configu
 			"Missing Technitium Server URL",
 			"The provider requires a server URL to connect to the Technitium DNS Server API. "+
 				"Set the server_url attribute or the TECHNITIUM_SERVER_URL environment variable.",
+		)
+	}
+
+	// Check for unknown credential values.
+	if config.Username.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("username"),
+			"Unknown Technitium Username",
+			"The provider cannot create the API client because the username value is unknown. "+
+				"Set the value statically or use the TECHNITIUM_USERNAME environment variable.",
+		)
+	}
+	if config.Password.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("password"),
+			"Unknown Technitium Password",
+			"The provider cannot create the API client because the password value is unknown. "+
+				"Set the value statically or use the TECHNITIUM_PASSWORD environment variable.",
+		)
+	}
+	if config.APIToken.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_token"),
+			"Unknown Technitium API Token",
+			"The provider cannot create the API client because the api_token value is unknown. "+
+				"Set the value statically or use the TECHNITIUM_API_TOKEN environment variable.",
 		)
 	}
 
@@ -161,6 +187,8 @@ func (p *TechnitiumProvider) Configure(ctx context.Context, req provider.Configu
 		)
 		return
 	}
+
+	c.UserAgent = "terraform-provider-technitium-dns/" + p.version
 
 	resp.DataSourceData = c
 	resp.ResourceData = c

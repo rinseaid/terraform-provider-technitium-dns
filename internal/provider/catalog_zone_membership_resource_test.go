@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -15,7 +16,7 @@ func testAccCheckCatalogZoneMembershipDestroy(zoneName string) resource.TestChec
 			return fmt.Errorf("creating client for destroy check: %s", err)
 		}
 
-		opts, err := c.GetZoneOptions(zoneName)
+		opts, err := c.GetZoneOptions(context.Background(), zoneName)
 		if err != nil {
 			return nil
 		}

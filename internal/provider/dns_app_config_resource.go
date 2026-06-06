@@ -86,7 +86,7 @@ func (r *dnsAppConfigResource) Create(ctx context.Context, req resource.CreateRe
 		"name": name,
 	})
 
-	_, err := r.client.SetAppConfig(name, config)
+	_, err := r.client.SetAppConfig(ctx, name, config)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Setting DNS App Config",
@@ -96,7 +96,7 @@ func (r *dnsAppConfigResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	// Read back the config.
-	readResp, err := r.client.GetAppConfig(name)
+	readResp, err := r.client.GetAppConfig(ctx, name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading DNS App Config",
@@ -121,7 +121,7 @@ func (r *dnsAppConfigResource) Read(ctx context.Context, req resource.ReadReques
 
 	name := state.Name.ValueString()
 
-	readResp, err := r.client.GetAppConfig(name)
+	readResp, err := r.client.GetAppConfig(ctx, name)
 	if err != nil {
 		resp.State.RemoveResource(ctx)
 		return
@@ -148,7 +148,7 @@ func (r *dnsAppConfigResource) Update(ctx context.Context, req resource.UpdateRe
 		"name": name,
 	})
 
-	_, err := r.client.SetAppConfig(name, config)
+	_, err := r.client.SetAppConfig(ctx, name, config)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating DNS App Config",
@@ -158,7 +158,7 @@ func (r *dnsAppConfigResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	// Read back.
-	readResp, err := r.client.GetAppConfig(name)
+	readResp, err := r.client.GetAppConfig(ctx, name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading DNS App Config",
@@ -183,7 +183,7 @@ func (r *dnsAppConfigResource) Delete(ctx context.Context, req resource.DeleteRe
 func (r *dnsAppConfigResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	name := req.ID
 
-	readResp, err := r.client.GetAppConfig(name)
+	readResp, err := r.client.GetAppConfig(ctx, name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Importing DNS App Config",

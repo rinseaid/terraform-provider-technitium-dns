@@ -597,7 +597,8 @@ func TestListZones(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.ListZones()
+	ctx := context.Background()
+	resp, err := c.ListZones(ctx)
 	if err != nil {
 		t.Fatalf("ListZones failed: %v", err)
 	}
@@ -625,7 +626,8 @@ func TestCreateZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.CreateZone("new.example.com", "Primary")
+	ctx := context.Background()
+	resp, err := c.CreateZone(ctx, "new.example.com", "Primary")
 	if err != nil {
 		t.Fatalf("CreateZone failed: %v", err)
 	}
@@ -645,7 +647,8 @@ func TestDeleteZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.DeleteZone("example.com")
+	ctx := context.Background()
+	_, err = c.DeleteZone(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("DeleteZone failed: %v", err)
 	}
@@ -660,7 +663,8 @@ func TestGetRecords(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetRecords("example.com", "", false)
+	ctx := context.Background()
+	resp, err := c.GetRecords(ctx, "example.com", "", false)
 	if err != nil {
 		t.Fatalf("GetRecords failed: %v", err)
 	}
@@ -683,12 +687,13 @@ func TestAddRecord(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("domain", "test.example.com")
 	params.Set("type", "A")
 	params.Set("ipAddress", "10.0.0.1")
 
-	resp, err := c.AddRecord(params)
+	resp, err := c.AddRecord(ctx, params)
 	if err != nil {
 		t.Fatalf("AddRecord failed: %v", err)
 	}
@@ -708,10 +713,12 @@ func TestAddRecord_MissingParams(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
+
 	t.Run("missing domain", func(t *testing.T) {
 		params := url.Values{}
 		params.Set("type", "A")
-		_, err := c.AddRecord(params)
+		_, err := c.AddRecord(ctx, params)
 		if err == nil {
 			t.Fatal("expected error for missing domain")
 		}
@@ -720,7 +727,7 @@ func TestAddRecord_MissingParams(t *testing.T) {
 	t.Run("missing type", func(t *testing.T) {
 		params := url.Values{}
 		params.Set("domain", "example.com")
-		_, err := c.AddRecord(params)
+		_, err := c.AddRecord(ctx, params)
 		if err == nil {
 			t.Fatal("expected error for missing type")
 		}
@@ -736,13 +743,14 @@ func TestUpdateRecord(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("domain", "example.com")
 	params.Set("type", "A")
 	params.Set("ipAddress", "1.2.3.4")
 	params.Set("newIpAddress", "5.6.7.8")
 
-	_, err = c.UpdateRecord(params)
+	_, err = c.UpdateRecord(ctx, params)
 	if err != nil {
 		t.Fatalf("UpdateRecord failed: %v", err)
 	}
@@ -757,12 +765,13 @@ func TestDeleteRecord(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("domain", "example.com")
 	params.Set("type", "A")
 	params.Set("ipAddress", "1.2.3.4")
 
-	_, err = c.DeleteRecord(params)
+	_, err = c.DeleteRecord(ctx, params)
 	if err != nil {
 		t.Fatalf("DeleteRecord failed: %v", err)
 	}
@@ -777,7 +786,8 @@ func TestListDHCPScopes(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.ListDHCPScopes()
+	ctx := context.Background()
+	resp, err := c.ListDHCPScopes(ctx)
 	if err != nil {
 		t.Fatalf("ListDHCPScopes failed: %v", err)
 	}
@@ -800,7 +810,8 @@ func TestGetDHCPScope(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetDHCPScope("Default")
+	ctx := context.Background()
+	resp, err := c.GetDHCPScope(ctx, "Default")
 	if err != nil {
 		t.Fatalf("GetDHCPScope failed: %v", err)
 	}
@@ -820,13 +831,14 @@ func TestSetDHCPScope(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("name", "Default")
 	params.Set("startingAddress", "192.168.1.1")
 	params.Set("endingAddress", "192.168.1.254")
 	params.Set("subnetMask", "255.255.255.0")
 
-	_, err = c.SetDHCPScope(params)
+	_, err = c.SetDHCPScope(ctx, params)
 	if err != nil {
 		t.Fatalf("SetDHCPScope failed: %v", err)
 	}
@@ -841,8 +853,9 @@ func TestSetDHCPScope_MissingName(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
-	_, err = c.SetDHCPScope(params)
+	_, err = c.SetDHCPScope(ctx, params)
 	if err == nil {
 		t.Fatal("expected error for missing name")
 	}
@@ -857,7 +870,8 @@ func TestDeleteDHCPScope(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.DeleteDHCPScope("Default")
+	ctx := context.Background()
+	_, err = c.DeleteDHCPScope(ctx, "Default")
 	if err != nil {
 		t.Fatalf("DeleteDHCPScope failed: %v", err)
 	}
@@ -872,10 +886,11 @@ func TestAddReservedLease(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("hardwareAddress", "00:11:22:33:44:55")
 	params.Set("ipAddress", "192.168.1.100")
-	_, err = c.AddReservedLease("Default", params)
+	_, err = c.AddReservedLease(ctx, "Default", params)
 	if err != nil {
 		t.Fatalf("AddReservedLease failed: %v", err)
 	}
@@ -890,9 +905,10 @@ func TestRemoveReservedLease(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	removeParams := url.Values{}
 	removeParams.Set("hardwareAddress", "00:11:22:33:44:55")
-	_, err = c.RemoveReservedLease("Default", removeParams)
+	_, err = c.RemoveReservedLease(ctx, "Default", removeParams)
 	if err != nil {
 		t.Fatalf("RemoveReservedLease failed: %v", err)
 	}
@@ -910,7 +926,8 @@ func TestNewWithToken(t *testing.T) {
 		t.Errorf("expected token 'test-token-abc123', got '%s'", c.token)
 	}
 
-	resp, err := c.ListZones()
+	ctx := context.Background()
+	resp, err := c.ListZones(ctx)
 	if err != nil {
 		t.Fatalf("ListZones with token auth failed: %v", err)
 	}
@@ -955,7 +972,8 @@ func TestEnableZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.EnableZone("example.com")
+	ctx := context.Background()
+	_, err = c.EnableZone(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("EnableZone failed: %v", err)
 	}
@@ -970,7 +988,8 @@ func TestDisableZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.DisableZone("example.com")
+	ctx := context.Background()
+	_, err = c.DisableZone(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("DisableZone failed: %v", err)
 	}
@@ -985,7 +1004,8 @@ func TestGetZoneOptions(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetZoneOptions("example.com")
+	ctx := context.Background()
+	resp, err := c.GetZoneOptions(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("GetZoneOptions failed: %v", err)
 	}
@@ -1005,9 +1025,10 @@ func TestSetZoneOptions(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("zoneTransfer", "Deny")
-	_, err = c.SetZoneOptions("example.com", params)
+	_, err = c.SetZoneOptions(ctx, "example.com", params)
 	if err != nil {
 		t.Fatalf("SetZoneOptions failed: %v", err)
 	}
@@ -1022,7 +1043,8 @@ func TestEnableDHCPScope(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.EnableDHCPScope("Default")
+	ctx := context.Background()
+	_, err = c.EnableDHCPScope(ctx, "Default")
 	if err != nil {
 		t.Fatalf("EnableDHCPScope failed: %v", err)
 	}
@@ -1037,7 +1059,8 @@ func TestDisableDHCPScope(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.DisableDHCPScope("Default")
+	ctx := context.Background()
+	_, err = c.DisableDHCPScope(ctx, "Default")
 	if err != nil {
 		t.Fatalf("DisableDHCPScope failed: %v", err)
 	}
@@ -1052,7 +1075,8 @@ func TestListDHCPLeases(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.ListDHCPLeases("Default")
+	ctx := context.Background()
+	resp, err := c.ListDHCPLeases(ctx, "Default")
 	if err != nil {
 		t.Fatalf("ListDHCPLeases failed: %v", err)
 	}
@@ -1075,7 +1099,8 @@ func TestListDHCPLeases_NoScope(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.ListDHCPLeases("")
+	ctx := context.Background()
+	_, err = c.ListDHCPLeases(ctx, "")
 	if err != nil {
 		t.Fatalf("ListDHCPLeases with empty scope failed: %v", err)
 	}
@@ -1090,7 +1115,8 @@ func TestListAllowedZones(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.ListAllowedZones("")
+	ctx := context.Background()
+	resp, err := c.ListAllowedZones(ctx, "")
 	if err != nil {
 		t.Fatalf("ListAllowedZones failed: %v", err)
 	}
@@ -1113,7 +1139,8 @@ func TestListAllowedZones_WithDomain(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.ListAllowedZones("example.com")
+	ctx := context.Background()
+	_, err = c.ListAllowedZones(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("ListAllowedZones with domain failed: %v", err)
 	}
@@ -1128,7 +1155,8 @@ func TestAllowZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.AllowZone("example.com")
+	ctx := context.Background()
+	_, err = c.AllowZone(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("AllowZone failed: %v", err)
 	}
@@ -1143,7 +1171,8 @@ func TestDeleteAllowedZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.DeleteAllowedZone("example.com")
+	ctx := context.Background()
+	_, err = c.DeleteAllowedZone(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("DeleteAllowedZone failed: %v", err)
 	}
@@ -1158,7 +1187,8 @@ func TestListBlockedZones(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.ListBlockedZones("")
+	ctx := context.Background()
+	resp, err := c.ListBlockedZones(ctx, "")
 	if err != nil {
 		t.Fatalf("ListBlockedZones failed: %v", err)
 	}
@@ -1181,7 +1211,8 @@ func TestBlockZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.BlockZone("malware.example")
+	ctx := context.Background()
+	_, err = c.BlockZone(ctx, "malware.example")
 	if err != nil {
 		t.Fatalf("BlockZone failed: %v", err)
 	}
@@ -1196,7 +1227,8 @@ func TestDeleteBlockedZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.DeleteBlockedZone("malware.example")
+	ctx := context.Background()
+	_, err = c.DeleteBlockedZone(ctx, "malware.example")
 	if err != nil {
 		t.Fatalf("DeleteBlockedZone failed: %v", err)
 	}
@@ -1211,7 +1243,8 @@ func TestGetDNSSettings(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetDNSSettings()
+	ctx := context.Background()
+	resp, err := c.GetDNSSettings(ctx)
 	if err != nil {
 		t.Fatalf("GetDNSSettings failed: %v", err)
 	}
@@ -1231,9 +1264,10 @@ func TestSetDNSSettings(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("preferIPv6", "true")
-	_, err = c.SetDNSSettings(params)
+	_, err = c.SetDNSSettings(ctx, params)
 	if err != nil {
 		t.Fatalf("SetDNSSettings failed: %v", err)
 	}
@@ -1248,7 +1282,8 @@ func TestGetTSIGKeyNames(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetTSIGKeyNames()
+	ctx := context.Background()
+	resp, err := c.GetTSIGKeyNames(ctx)
 	if err != nil {
 		t.Fatalf("GetTSIGKeyNames failed: %v", err)
 	}
@@ -1271,7 +1306,8 @@ func TestListCatalogZones(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.ListCatalogZones()
+	ctx := context.Background()
+	resp, err := c.ListCatalogZones(ctx)
 	if err != nil {
 		t.Fatalf("ListCatalogZones failed: %v", err)
 	}
@@ -1285,8 +1321,6 @@ func TestListCatalogZones(t *testing.T) {
 	}
 }
 
-
-
 func TestAddReservedLease_MissingParams(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
@@ -1296,10 +1330,12 @@ func TestAddReservedLease_MissingParams(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
+
 	t.Run("missing hardwareAddress", func(t *testing.T) {
 		params := url.Values{}
 		params.Set("ipAddress", "192.168.1.100")
-		_, err := c.AddReservedLease("Default", params)
+		_, err := c.AddReservedLease(ctx, "Default", params)
 		if err == nil {
 			t.Fatal("expected error for missing hardwareAddress")
 		}
@@ -1308,7 +1344,7 @@ func TestAddReservedLease_MissingParams(t *testing.T) {
 	t.Run("missing ipAddress", func(t *testing.T) {
 		params := url.Values{}
 		params.Set("hardwareAddress", "00:11:22:33:44:55")
-		_, err := c.AddReservedLease("Default", params)
+		_, err := c.AddReservedLease(ctx, "Default", params)
 		if err == nil {
 			t.Fatal("expected error for missing ipAddress")
 		}
@@ -1324,8 +1360,9 @@ func TestRemoveReservedLease_MissingParams(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
-	_, err = c.RemoveReservedLease("Default", params)
+	_, err = c.RemoveReservedLease(ctx, "Default", params)
 	if err == nil {
 		t.Fatal("expected error for missing hardwareAddress")
 	}
@@ -1340,10 +1377,12 @@ func TestUpdateRecord_MissingParams(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
+
 	t.Run("missing domain", func(t *testing.T) {
 		params := url.Values{}
 		params.Set("type", "A")
-		_, err := c.UpdateRecord(params)
+		_, err := c.UpdateRecord(ctx, params)
 		if err == nil {
 			t.Fatal("expected error for missing domain")
 		}
@@ -1352,7 +1391,7 @@ func TestUpdateRecord_MissingParams(t *testing.T) {
 	t.Run("missing type", func(t *testing.T) {
 		params := url.Values{}
 		params.Set("domain", "example.com")
-		_, err := c.UpdateRecord(params)
+		_, err := c.UpdateRecord(ctx, params)
 		if err == nil {
 			t.Fatal("expected error for missing type")
 		}
@@ -1368,10 +1407,12 @@ func TestDeleteRecord_MissingParams(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
+
 	t.Run("missing domain", func(t *testing.T) {
 		params := url.Values{}
 		params.Set("type", "A")
-		_, err := c.DeleteRecord(params)
+		_, err := c.DeleteRecord(ctx, params)
 		if err == nil {
 			t.Fatal("expected error for missing domain")
 		}
@@ -1380,7 +1421,7 @@ func TestDeleteRecord_MissingParams(t *testing.T) {
 	t.Run("missing type", func(t *testing.T) {
 		params := url.Values{}
 		params.Set("domain", "example.com")
-		_, err := c.DeleteRecord(params)
+		_, err := c.DeleteRecord(ctx, params)
 		if err == nil {
 			t.Fatal("expected error for missing type")
 		}
@@ -1396,7 +1437,8 @@ func TestListApps(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.ListApps()
+	ctx := context.Background()
+	resp, err := c.ListApps(ctx)
 	if err != nil {
 		t.Fatalf("ListApps failed: %v", err)
 	}
@@ -1419,7 +1461,8 @@ func TestGetAppConfig(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.GetAppConfig("Failover")
+	ctx := context.Background()
+	_, err = c.GetAppConfig(ctx, "Failover")
 	if err != nil {
 		t.Fatalf("GetAppConfig failed: %v", err)
 	}
@@ -1434,7 +1477,8 @@ func TestSetAppConfig(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.SetAppConfig("Failover", "{}")
+	ctx := context.Background()
+	_, err = c.SetAppConfig(ctx, "Failover", "{}")
 	if err != nil {
 		t.Fatalf("SetAppConfig failed: %v", err)
 	}
@@ -1444,14 +1488,16 @@ func TestInvalidToken(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "admin", "admin", 0)
+	// Use NewWithToken so no credentials are stored for auto-refresh
+	c, err := NewWithToken(srv.URL, "test-token-abc123", 0)
 	if err != nil {
-		t.Fatalf("login failed: %v", err)
+		t.Fatalf("NewWithToken failed: %v", err)
 	}
 
 	// Corrupt the token to trigger invalid-token response
 	c.token = "bad-token"
-	_, err = c.ListZones()
+	ctx := context.Background()
+	_, err = c.ListZones(ctx)
 	if err == nil {
 		t.Fatal("expected error for invalid token")
 	}
@@ -1479,7 +1525,8 @@ func TestDoRequest_MalformedJSON(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.ListZones()
+	ctx := context.Background()
+	_, err = c.ListZones(ctx)
 	if err == nil {
 		t.Fatal("expected error for malformed JSON")
 	}
@@ -1507,7 +1554,8 @@ func TestDoRequest_ErrorWithMessage(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.ListZones()
+	ctx := context.Background()
+	_, err = c.ListZones(ctx)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -1537,7 +1585,8 @@ func TestDoRequest_ErrorWithoutMessage(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.ListZones()
+	ctx := context.Background()
+	_, err = c.ListZones(ctx)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -1567,7 +1616,8 @@ func TestDoRequest_UnexpectedStatus(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.ListZones()
+	ctx := context.Background()
+	_, err = c.ListZones(ctx)
 	if err == nil {
 		t.Fatal("expected error for unexpected status")
 	}
@@ -1589,7 +1639,7 @@ func TestDoRequest_ServerDown(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	_, err := c.doRequestCtx(ctx, http.MethodGet, "zones/list", nil)
+	_, err := c.doRequestWithRetry(ctx, http.MethodGet, "zones/list", nil)
 	if err == nil {
 		t.Fatal("expected error for closed server")
 	}
@@ -1628,13 +1678,14 @@ func TestDoRequest_POST(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("name", "Test")
 	params.Set("startingAddress", "10.0.0.1")
 	params.Set("endingAddress", "10.0.0.254")
 	params.Set("subnetMask", "255.255.255.0")
 
-	_, err = c.SetDHCPScope(params)
+	_, err = c.SetDHCPScope(ctx, params)
 	if err != nil {
 		t.Fatalf("SetDHCPScope (POST) failed: %v", err)
 	}
@@ -1661,7 +1712,8 @@ func TestDoRequest_NilResponse(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.DeleteZone("example.com")
+	ctx := context.Background()
+	resp, err := c.DeleteZone(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("DeleteZone failed: %v", err)
 	}
@@ -1709,7 +1761,8 @@ func TestGetRecords_WithZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetRecords("example.com", "example.com", true)
+	ctx := context.Background()
+	resp, err := c.GetRecords(ctx, "example.com", "example.com", true)
 	if err != nil {
 		t.Fatalf("GetRecords with zone and listZone failed: %v", err)
 	}
@@ -1732,7 +1785,8 @@ func TestListBlockedZones_WithDomain(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.ListBlockedZones("malware.example")
+	ctx := context.Background()
+	_, err = c.ListBlockedZones(ctx, "malware.example")
 	if err != nil {
 		t.Fatalf("ListBlockedZones with domain failed: %v", err)
 	}
@@ -1747,11 +1801,12 @@ func TestCreateZone_WithExtra(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	extra := url.Values{}
 	extra.Set("forwarder", "this-server")
 	extra.Set("protocol", "Udp")
 
-	resp, err := c.CreateZone("fwd.example.com", "Forwarder", extra)
+	resp, err := c.CreateZone(ctx, "fwd.example.com", "Forwarder", extra)
 	if err != nil {
 		t.Fatalf("CreateZone with extra failed: %v", err)
 	}
@@ -1775,10 +1830,11 @@ func TestSignZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("algorithm", "ECDSA")
 	params.Set("curve", "P256")
-	_, err = c.SignZone("example.com", params)
+	_, err = c.SignZone(ctx, "example.com", params)
 	if err != nil {
 		t.Fatalf("SignZone failed: %v", err)
 	}
@@ -1793,7 +1849,8 @@ func TestUnsignZone(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.UnsignZone("example.com")
+	ctx := context.Background()
+	_, err = c.UnsignZone(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("UnsignZone failed: %v", err)
 	}
@@ -1808,7 +1865,8 @@ func TestGetDNSSECProperties(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetDNSSECProperties("example.com")
+	ctx := context.Background()
+	resp, err := c.GetDNSSECProperties(ctx, "example.com")
 	if err != nil {
 		t.Fatalf("GetDNSSECProperties failed: %v", err)
 	}
@@ -1837,7 +1895,8 @@ func TestListUsers(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.ListUsers()
+	ctx := context.Background()
+	resp, err := c.ListUsers(ctx)
 	if err != nil {
 		t.Fatalf("ListUsers failed: %v", err)
 	}
@@ -1860,7 +1919,8 @@ func TestCreateUser(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.CreateUser("testuser", "testpass")
+	ctx := context.Background()
+	resp, err := c.CreateUser(ctx, "testuser", "testpass")
 	if err != nil {
 		t.Fatalf("CreateUser failed: %v", err)
 	}
@@ -1880,10 +1940,11 @@ func TestCreateUser_WithExtra(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	extra := url.Values{}
 	extra.Set("displayName", "Test User")
 
-	resp, err := c.CreateUser("testuser", "testpass", extra)
+	resp, err := c.CreateUser(ctx, "testuser", "testpass", extra)
 	if err != nil {
 		t.Fatalf("CreateUser with extra failed: %v", err)
 	}
@@ -1903,7 +1964,8 @@ func TestGetUserDetails(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetUserDetails("admin")
+	ctx := context.Background()
+	resp, err := c.GetUserDetails(ctx, "admin")
 	if err != nil {
 		t.Fatalf("GetUserDetails failed: %v", err)
 	}
@@ -1928,9 +1990,10 @@ func TestSetUserDetails(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("disabled", "true")
-	_, err = c.SetUserDetails("admin", params)
+	_, err = c.SetUserDetails(ctx, "admin", params)
 	if err != nil {
 		t.Fatalf("SetUserDetails failed: %v", err)
 	}
@@ -1945,7 +2008,8 @@ func TestDeleteUser(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.DeleteUser("testuser")
+	ctx := context.Background()
+	_, err = c.DeleteUser(ctx, "testuser")
 	if err != nil {
 		t.Fatalf("DeleteUser failed: %v", err)
 	}
@@ -1964,7 +2028,8 @@ func TestListGroups(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.ListGroups()
+	ctx := context.Background()
+	resp, err := c.ListGroups(ctx)
 	if err != nil {
 		t.Fatalf("ListGroups failed: %v", err)
 	}
@@ -1987,7 +2052,8 @@ func TestCreateGroup(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.CreateGroup("Operators", "Operations team")
+	ctx := context.Background()
+	resp, err := c.CreateGroup(ctx, "Operators", "Operations team")
 	if err != nil {
 		t.Fatalf("CreateGroup failed: %v", err)
 	}
@@ -2007,7 +2073,8 @@ func TestCreateGroup_NoDescription(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.CreateGroup("Operators", "")
+	ctx := context.Background()
+	_, err = c.CreateGroup(ctx, "Operators", "")
 	if err != nil {
 		t.Fatalf("CreateGroup without description failed: %v", err)
 	}
@@ -2022,7 +2089,8 @@ func TestGetGroupDetails(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetGroupDetails("Administrators")
+	ctx := context.Background()
+	resp, err := c.GetGroupDetails(ctx, "Administrators")
 	if err != nil {
 		t.Fatalf("GetGroupDetails failed: %v", err)
 	}
@@ -2047,9 +2115,10 @@ func TestSetGroupDetails(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("members", "admin,testuser")
-	_, err = c.SetGroupDetails("Administrators", params)
+	_, err = c.SetGroupDetails(ctx, "Administrators", params)
 	if err != nil {
 		t.Fatalf("SetGroupDetails failed: %v", err)
 	}
@@ -2064,7 +2133,8 @@ func TestDeleteGroup(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	_, err = c.DeleteGroup("Operators")
+	ctx := context.Background()
+	_, err = c.DeleteGroup(ctx, "Operators")
 	if err != nil {
 		t.Fatalf("DeleteGroup failed: %v", err)
 	}
@@ -2083,7 +2153,8 @@ func TestGetPermissions(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	resp, err := c.GetPermissions("Zones")
+	ctx := context.Background()
+	resp, err := c.GetPermissions(ctx, "Zones")
 	if err != nil {
 		t.Fatalf("GetPermissions failed: %v", err)
 	}
@@ -2119,10 +2190,11 @@ func TestSetPermissions(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
+	ctx := context.Background()
 	params := url.Values{}
 	params.Set("userPermissions", "admin|true|true|true")
 	params.Set("groupPermissions", "Administrators|true|true|true")
-	_, err = c.SetPermissions("Zones", params)
+	_, err = c.SetPermissions(ctx, "Zones", params)
 	if err != nil {
 		t.Fatalf("SetPermissions failed: %v", err)
 	}
@@ -2161,7 +2233,8 @@ func TestDoRequest_RetryOn503(t *testing.T) {
 		t.Fatalf("NewWithToken failed: %v", err)
 	}
 
-	_, err = c.ListZones()
+	ctx := context.Background()
+	_, err = c.ListZones(ctx)
 	if err != nil {
 		t.Fatalf("expected success after retries, got: %v", err)
 	}
@@ -2192,7 +2265,8 @@ func TestDoRequest_NonRetriableHTTPError(t *testing.T) {
 		t.Fatalf("NewWithToken failed: %v", err)
 	}
 
-	_, err = c.ListZones()
+	ctx := context.Background()
+	_, err = c.ListZones(ctx)
 	if err == nil {
 		t.Fatal("expected error for 403 response")
 	}
@@ -2233,12 +2307,13 @@ func TestMutatingEndpoints_UsePOST(t *testing.T) {
 		t.Fatalf("NewWithToken failed: %v", err)
 	}
 
-	_, _ = c.CreateZone("test.example", "Primary")
+	ctx := context.Background()
+	_, _ = c.CreateZone(ctx, "test.example", "Primary")
 	if lastMethod != http.MethodPost {
 		t.Errorf("CreateZone: expected POST, got %s", lastMethod)
 	}
 
-	_, _ = c.DeleteZone("test.example")
+	_, _ = c.DeleteZone(ctx, "test.example")
 	if lastMethod != http.MethodPost {
 		t.Errorf("DeleteZone: expected POST, got %s", lastMethod)
 	}

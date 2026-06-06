@@ -40,6 +40,6 @@ docs:
 	@echo "Docs generated in docs/"
 
 clean:
-	rm -f ${BINARY} terraform-provider-technitium
+	rm -f ${BINARY}
 
 .PHONY: default build install test testcover testacc testacccover fmt lint docs clean

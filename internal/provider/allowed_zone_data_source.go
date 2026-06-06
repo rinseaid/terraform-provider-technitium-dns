@@ -70,7 +70,7 @@ func (d *allowedZonesDataSource) Configure(_ context.Context, req datasource.Con
 }
 
 func (d *allowedZonesDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
-	result, err := d.client.ListAllowedZones("")
+	result, err := d.client.ListAllowedZones(ctx, "")
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Listing Allowed Zones",

@@ -74,8 +74,8 @@ func (d *dnsAppsDataSource) Configure(_ context.Context, req datasource.Configur
 	d.client = c
 }
 
-func (d *dnsAppsDataSource) Read(_ context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
-	result, err := d.client.ListApps()
+func (d *dnsAppsDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+	result, err := d.client.ListApps(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading DNS Apps",
@@ -89,7 +89,7 @@ func (d *dnsAppsDataSource) Read(_ context.Context, _ datasource.ReadRequest, re
 	appList, ok := result["apps"].([]interface{})
 	if !ok {
 		state.Apps = []dnsAppModel{}
-		resp.Diagnostics.Append(resp.State.Set(context.Background(), &state)...)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 		return
 	}
 
@@ -112,5 +112,5 @@ func (d *dnsAppsDataSource) Read(_ context.Context, _ datasource.ReadRequest, re
 		state.Apps = []dnsAppModel{}
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(context.Background(), &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

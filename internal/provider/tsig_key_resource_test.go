@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -131,7 +132,7 @@ func testAccCheckTSIGKeyDestroy(keyName string) resource.TestCheckFunc {
 			return fmt.Errorf("creating client for destroy check: %s", err)
 		}
 
-		response, err := c.GetDNSSettings()
+		response, err := c.GetDNSSettings(context.Background())
 		if err != nil {
 			return fmt.Errorf("reading DNS settings for destroy check: %s", err)
 		}

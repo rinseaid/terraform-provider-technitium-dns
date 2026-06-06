@@ -139,7 +139,7 @@ func (r *tsigKeyResource) Create(ctx context.Context, req resource.CreateRequest
 		"key_name": keyName,
 	})
 
-	existingKeys, err := r.readAllTSIGKeys()
+	existingKeys, err := r.readAllTSIGKeys(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading TSIG Keys",
@@ -165,7 +165,7 @@ func (r *tsigKeyResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	existingKeys = append(existingKeys, newKey)
 
-	if err := r.writeAllTSIGKeys(existingKeys); err != nil {
+	if err := r.writeAllTSIGKeys(ctx, existingKeys); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating TSIG Key",
 			fmt.Sprintf("Could not write TSIG keys: %s", err),
@@ -174,7 +174,7 @@ func (r *tsigKeyResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Read back to pick up server-generated secret.
-	allKeys, err := r.readAllTSIGKeys()
+	allKeys, err := r.readAllTSIGKeys(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading TSIG Keys",
@@ -214,7 +214,7 @@ func (r *tsigKeyResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	keyName := state.KeyName.ValueString()
 
-	allKeys, err := r.readAllTSIGKeys()
+	allKeys, err := r.readAllTSIGKeys(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading TSIG Keys",
@@ -272,7 +272,7 @@ func (r *tsigKeyResource) Update(ctx context.Context, req resource.UpdateRequest
 		"key_name": keyName,
 	})
 
-	existingKeys, err := r.readAllTSIGKeys()
+	existingKeys, err := r.readAllTSIGKeys(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading TSIG Keys",
@@ -299,7 +299,7 @@ func (r *tsigKeyResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	if err := r.writeAllTSIGKeys(existingKeys); err != nil {
+	if err := r.writeAllTSIGKeys(ctx, existingKeys); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating TSIG Key",
 			fmt.Sprintf("Could not write TSIG keys: %s", err),
@@ -308,7 +308,7 @@ func (r *tsigKeyResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Read back to confirm.
-	allKeys, err := r.readAllTSIGKeys()
+	allKeys, err := r.readAllTSIGKeys(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading TSIG Keys",
@@ -342,7 +342,7 @@ func (r *tsigKeyResource) Delete(ctx context.Context, req resource.DeleteRequest
 		"key_name": keyName,
 	})
 
-	existingKeys, err := r.readAllTSIGKeys()
+	existingKeys, err := r.readAllTSIGKeys(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading TSIG Keys",
@@ -358,7 +358,7 @@ func (r *tsigKeyResource) Delete(ctx context.Context, req resource.DeleteRequest
 		}
 	}
 
-	if err := r.writeAllTSIGKeys(filtered); err != nil {
+	if err := r.writeAllTSIGKeys(ctx, filtered); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting TSIG Key",
 			fmt.Sprintf("Could not write TSIG keys after removal: %s", err),
@@ -369,7 +369,7 @@ func (r *tsigKeyResource) Delete(ctx context.Context, req resource.DeleteRequest
 func (r *tsigKeyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	keyName := req.ID
 
-	allKeys, err := r.readAllTSIGKeys()
+	allKeys, err := r.readAllTSIGKeys(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Importing TSIG Key",
@@ -412,8 +412,8 @@ func normalizeTSIGKeyName(name string) string {
 }
 
 // readAllTSIGKeys fetches DNS settings and parses the tsigKeys array.
-func (r *tsigKeyResource) readAllTSIGKeys() ([]tsigKeyEntry, error) {
-	response, err := r.client.GetDNSSettings()
+func (r *tsigKeyResource) readAllTSIGKeys(ctx context.Context) ([]tsigKeyEntry, error) {
+	response, err := r.client.GetDNSSettings(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("GetDNSSettings: %w", err)
 	}
@@ -445,7 +445,7 @@ func (r *tsigKeyResource) readAllTSIGKeys() ([]tsigKeyEntry, error) {
 // writeAllTSIGKeys encodes the key list into the pipe-delimited wire format
 // and writes it back via SetDNSSettings. An empty list sets tsigKeys=false
 // to remove all keys.
-func (r *tsigKeyResource) writeAllTSIGKeys(keys []tsigKeyEntry) error {
+func (r *tsigKeyResource) writeAllTSIGKeys(ctx context.Context, keys []tsigKeyEntry) error {
 	params := url.Values{}
 
 	if len(keys) == 0 {
@@ -458,7 +458,7 @@ func (r *tsigKeyResource) writeAllTSIGKeys(keys []tsigKeyEntry) error {
 		params.Set("tsigKeys", strings.Join(parts, "|"))
 	}
 
-	_, err := r.client.SetDNSSettings(params)
+	_, err := r.client.SetDNSSettings(ctx, params)
 	if err != nil {
 		return fmt.Errorf("SetDNSSettings: %w", err)
 	}

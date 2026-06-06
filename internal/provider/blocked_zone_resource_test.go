@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -89,7 +90,7 @@ func testAccCheckBlockedZoneDestroy(domain string) resource.TestCheckFunc {
 			return fmt.Errorf("creating client for destroy check: %s", err)
 		}
 
-		result, err := c.ListBlockedZones("")
+		result, err := c.ListBlockedZones(context.Background(), "")
 		if err != nil {
 			return fmt.Errorf("error checking blocked zone destroy: %s", err)
 		}

@@ -120,7 +120,7 @@ func (r *adminPermissionResource) Create(ctx context.Context, req resource.Creat
 		params.Set("groupPermissions", plan.GroupPermissions.ValueString())
 	}
 
-	_, err := r.client.SetPermissions(section, params)
+	_, err := r.client.SetPermissions(ctx, section, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Setting Admin Permissions",
@@ -130,7 +130,7 @@ func (r *adminPermissionResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Read back.
-	readResp, err := r.client.GetPermissions(section)
+	readResp, err := r.client.GetPermissions(ctx, section)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Admin Permissions",
@@ -152,9 +152,16 @@ func (r *adminPermissionResource) Read(ctx context.Context, req resource.ReadReq
 
 	section := state.Section.ValueString()
 
-	readResp, err := r.client.GetPermissions(section)
+	readResp, err := r.client.GetPermissions(ctx, section)
 	if err != nil {
-		resp.State.RemoveResource(ctx)
+		if strings.Contains(err.Error(), "was not found") {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError(
+			"Error Reading Admin Permissions",
+			fmt.Sprintf("Could not read permissions for section %q: %s", section, err),
+		)
 		return
 	}
 
@@ -183,7 +190,7 @@ func (r *adminPermissionResource) Update(ctx context.Context, req resource.Updat
 		params.Set("groupPermissions", plan.GroupPermissions.ValueString())
 	}
 
-	_, err := r.client.SetPermissions(section, params)
+	_, err := r.client.SetPermissions(ctx, section, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating Admin Permissions",
@@ -193,7 +200,7 @@ func (r *adminPermissionResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	// Read back.
-	readResp, err := r.client.GetPermissions(section)
+	readResp, err := r.client.GetPermissions(ctx, section)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Admin Permissions",
@@ -215,7 +222,7 @@ func (r *adminPermissionResource) Delete(ctx context.Context, req resource.Delet
 func (r *adminPermissionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	section := req.ID
 
-	readResp, err := r.client.GetPermissions(section)
+	readResp, err := r.client.GetPermissions(ctx, section)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Importing Admin Permissions",

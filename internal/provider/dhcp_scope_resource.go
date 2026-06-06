@@ -212,11 +212,15 @@ func (r *dhcpScopeResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	params := r.buildSetParams(ctx, &plan)
+	params, paramDiags := r.buildSetParams(ctx, &plan)
+	resp.Diagnostics.Append(paramDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, "Creating DHCP scope", map[string]interface{}{"name": plan.Name.ValueString()})
 
-	_, err := r.client.SetDHCPScope(params)
+	_, err := r.client.SetDHCPScope(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating DHCP Scope",
@@ -226,9 +230,9 @@ func (r *dhcpScopeResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	if plan.Enabled.ValueBool() {
-		_, err = r.client.EnableDHCPScope(plan.Name.ValueString())
+		_, err = r.client.EnableDHCPScope(ctx, plan.Name.ValueString())
 	} else {
-		_, err = r.client.DisableDHCPScope(plan.Name.ValueString())
+		_, err = r.client.DisableDHCPScope(ctx, plan.Name.ValueString())
 	}
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -274,11 +278,15 @@ func (r *dhcpScopeResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	params := r.buildSetParams(ctx, &plan)
+	params, paramDiags := r.buildSetParams(ctx, &plan)
+	resp.Diagnostics.Append(paramDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, "Updating DHCP scope", map[string]interface{}{"name": plan.Name.ValueString()})
 
-	_, err := r.client.SetDHCPScope(params)
+	_, err := r.client.SetDHCPScope(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating DHCP Scope",
@@ -288,9 +296,9 @@ func (r *dhcpScopeResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	if plan.Enabled.ValueBool() {
-		_, err = r.client.EnableDHCPScope(plan.Name.ValueString())
+		_, err = r.client.EnableDHCPScope(ctx, plan.Name.ValueString())
 	} else {
-		_, err = r.client.DisableDHCPScope(plan.Name.ValueString())
+		_, err = r.client.DisableDHCPScope(ctx, plan.Name.ValueString())
 	}
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -320,7 +328,7 @@ func (r *dhcpScopeResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	tflog.Debug(ctx, "Deleting DHCP scope", map[string]interface{}{"name": state.Name.ValueString()})
 
-	_, err := r.client.DeleteDHCPScope(state.Name.ValueString())
+	_, err := r.client.DeleteDHCPScope(ctx, state.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting DHCP Scope",
@@ -334,7 +342,8 @@ func (r *dhcpScopeResource) ImportState(ctx context.Context, req resource.Import
 	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
 }
 
-func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScopeResourceModel) url.Values {
+func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScopeResourceModel) (url.Values, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	params := url.Values{}
 	params.Set("name", model.Name.ValueString())
 	params.Set("startingAddress", model.StartAddress.ValueString())
@@ -347,7 +356,7 @@ func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScope
 
 	if !model.DNSServers.IsNull() && !model.DNSServers.IsUnknown() {
 		var servers []string
-		model.DNSServers.ElementsAs(ctx, &servers, false)
+		diags.Append(model.DNSServers.ElementsAs(ctx, &servers, false)...)
 		params.Set("dnsServers", strings.Join(servers, ","))
 	}
 
@@ -379,7 +388,7 @@ func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScope
 
 	if !model.DomainSearchList.IsNull() && !model.DomainSearchList.IsUnknown() {
 		var domains []string
-		model.DomainSearchList.ElementsAs(ctx, &domains, false)
+		diags.Append(model.DomainSearchList.ElementsAs(ctx, &domains, false)...)
 		params.Set("domainSearchList", strings.Join(domains, ","))
 	}
 
@@ -397,7 +406,7 @@ func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScope
 
 	if !model.TFTPServerAddresses.IsNull() && !model.TFTPServerAddresses.IsUnknown() {
 		var addrs []string
-		model.TFTPServerAddresses.ElementsAs(ctx, &addrs, false)
+		diags.Append(model.TFTPServerAddresses.ElementsAs(ctx, &addrs, false)...)
 		params.Set("tftpServerAddresses", strings.Join(addrs, ","))
 	}
 
@@ -407,7 +416,7 @@ func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScope
 
 	if !model.NTPServers.IsNull() && !model.NTPServers.IsUnknown() {
 		var servers []string
-		model.NTPServers.ElementsAs(ctx, &servers, false)
+		diags.Append(model.NTPServers.ElementsAs(ctx, &servers, false)...)
 		params.Set("ntpServers", strings.Join(servers, ","))
 	}
 
@@ -423,11 +432,11 @@ func (r *dhcpScopeResource) buildSetParams(ctx context.Context, model *dhcpScope
 		params.Set("ignoreClientIdentifierOption", fmt.Sprintf("%t", model.IgnoreClientIdentifierOption.ValueBool()))
 	}
 
-	return params
+	return params, diags
 }
 
 func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeResourceModel) (diags diag.Diagnostics) {
-	scopeData, err := r.client.GetDHCPScope(model.Name.ValueString())
+	scopeData, err := r.client.GetDHCPScope(ctx, model.Name.ValueString())
 	if err != nil {
 		diags.AddError(
 			"Error Reading DHCP Scope",
@@ -661,7 +670,7 @@ func (r *dhcpScopeResource) readIntoModel(ctx context.Context, model *dhcpScopeR
 	}
 
 	// Determine enabled state from list endpoint (GetDHCPScope does not include it)
-	scopes, err := r.client.ListDHCPScopes()
+	scopes, err := r.client.ListDHCPScopes(ctx)
 	if err != nil {
 		diags.AddError(
 			"Error Reading DHCP Scopes List",

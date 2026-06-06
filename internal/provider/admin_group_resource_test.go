@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -67,7 +68,7 @@ func testAccCheckAdminGroupDestroy(name string) resource.TestCheckFunc {
 			return fmt.Errorf("creating client for destroy check: %s", err)
 		}
 
-		_, err = c.GetGroupDetails(name)
+		_, err = c.GetGroupDetails(context.Background(), name)
 		if err == nil {
 			return fmt.Errorf("admin group %q still exists after destroy", name)
 		}

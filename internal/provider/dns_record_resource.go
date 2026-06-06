@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -107,6 +109,9 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"id": schema.StringAttribute{
 				Description: "Composite identifier in the format zone:domain:type:value.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"zone": schema.StringAttribute{
 				Description: "The authoritative zone name.",
@@ -159,16 +164,25 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Description: "Priority value for MX and SRV records.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"weight": schema.Int64Attribute{
 				Description: "Weight value for SRV records.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"port": schema.Int64Attribute{
 				Description: "Port number for SRV records.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"protocol": schema.StringAttribute{
 				Description: "Forwarding protocol for FWD records. Valid values: Udp, Tcp, Tls, Https, Quic.",
@@ -181,16 +195,25 @@ func (r *dnsRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Description: "Flags value for CAA records.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"tag": schema.StringAttribute{
 				Description: "Tag value for CAA records (e.g. issue, issuewild, iodef).",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"forwarder_priority": schema.Int64Attribute{
 				Description: "Priority for FWD records. Lower values are queried first; equal values are queried concurrently.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"dnssec_validation": schema.BoolAttribute{
 				Description: "Enable DNSSEC validation for FWD records.",
@@ -394,7 +417,7 @@ func (r *dnsRecordResource) Create(ctx context.Context, req resource.CreateReque
 		"type":   plan.Type.ValueString(),
 	})
 
-	_, err := r.client.AddRecord(params)
+	_, err := r.client.AddRecord(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating DNS Record",
@@ -411,7 +434,7 @@ func (r *dnsRecordResource) Create(ctx context.Context, req resource.CreateReque
 		disableParams.Set("type", plan.Type.ValueString())
 		disableParams.Set("disable", "true")
 		setValueParams(disableParams, &plan)
-		_, err = r.client.UpdateRecord(disableParams)
+		_, err = r.client.UpdateRecord(ctx, disableParams)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error Disabling DNS Record",
@@ -480,7 +503,7 @@ func (r *dnsRecordResource) Update(ctx context.Context, req resource.UpdateReque
 		"type":   plan.Type.ValueString(),
 	})
 
-	_, err := r.client.UpdateRecord(params)
+	_, err := r.client.UpdateRecord(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating DNS Record",
@@ -520,7 +543,7 @@ func (r *dnsRecordResource) Delete(ctx context.Context, req resource.DeleteReque
 		"type":   state.Type.ValueString(),
 	})
 
-	_, err := r.client.DeleteRecord(params)
+	_, err := r.client.DeleteRecord(ctx, params)
 	if err != nil {
 		if strings.Contains(err.Error(), "no such record") ||
 			strings.Contains(err.Error(), "was not found") ||
@@ -555,8 +578,9 @@ func (r *dnsRecordResource) ImportState(ctx context.Context, req resource.Import
 
 // readRecordIntoModel fetches the current record from the API and populates
 // the model fields. Adds an error diagnostic if the record is not found.
-func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRecordResourceModel, diagnostics *diag.Diagnostics) {
+func (r *dnsRecordResource) readRecordIntoModel(ctx context.Context, model *dnsRecordResourceModel, diagnostics *diag.Diagnostics) {
 	response, err := r.client.GetRecords(
+		ctx,
 		model.Domain.ValueString(),
 		model.Zone.ValueString(),
 		false,
@@ -817,9 +841,14 @@ func (r *dnsRecordResource) readRecordIntoModel(_ context.Context, model *dnsRec
 				model.SvcTargetName = types.StringNull()
 			}
 			if v, ok := rData["svcParams"].(map[string]interface{}); ok && len(v) > 0 {
+				keys := make([]string, 0, len(v))
+				for key := range v {
+					keys = append(keys, key)
+				}
+				sort.Strings(keys)
 				var parts []string
-				for key, val := range v {
-					if s, ok := val.(string); ok {
+				for _, key := range keys {
+					if s, ok := v[key].(string); ok {
 						parts = append(parts, key, s)
 					}
 				}

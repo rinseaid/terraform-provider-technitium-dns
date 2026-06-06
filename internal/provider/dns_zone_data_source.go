@@ -89,7 +89,7 @@ func (d *dnsZonesDataSource) Configure(_ context.Context, req datasource.Configu
 func (d *dnsZonesDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	tflog.Debug(ctx, "Reading DNS zones list")
 
-	result, err := d.client.ListZones()
+	result, err := d.client.ListZones(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Listing DNS Zones",

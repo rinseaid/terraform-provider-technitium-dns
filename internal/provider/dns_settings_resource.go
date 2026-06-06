@@ -706,12 +706,16 @@ func (r *dnsSettingsResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	params := r.buildSetParams(ctx, &plan)
+	params, diags := r.buildSetParams(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, "Applying DNS settings")
 
 	if len(params) > 0 {
-		_, err := r.client.SetDNSSettings(params)
+		_, err := r.client.SetDNSSettings(ctx, params)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error Setting DNS Settings",
@@ -723,7 +727,7 @@ func (r *dnsSettingsResource) Create(ctx context.Context, req resource.CreateReq
 
 	plan.ID = types.StringValue("settings")
 
-	diags := r.readIntoModel(ctx, &plan)
+	diags = r.readIntoModel(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -755,12 +759,16 @@ func (r *dnsSettingsResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	params := r.buildSetParams(ctx, &plan)
+	params, diags := r.buildSetParams(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, "Updating DNS settings")
 
 	if len(params) > 0 {
-		_, err := r.client.SetDNSSettings(params)
+		_, err := r.client.SetDNSSettings(ctx, params)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error Updating DNS Settings",
@@ -772,7 +780,7 @@ func (r *dnsSettingsResource) Update(ctx context.Context, req resource.UpdateReq
 
 	plan.ID = types.StringValue("settings")
 
-	diags := r.readIntoModel(ctx, &plan)
+	diags = r.readIntoModel(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -800,7 +808,7 @@ func (r *dnsSettingsResource) ImportState(ctx context.Context, _ resource.Import
 func (r *dnsSettingsResource) readIntoModel(ctx context.Context, model *dnsSettingsResourceModel) (diags diag.Diagnostics) {
 	tflog.Debug(ctx, "Reading DNS settings")
 
-	response, err := r.client.GetDNSSettings()
+	response, err := r.client.GetDNSSettings(ctx)
 	if err != nil {
 		diags.AddError("Error Reading DNS Settings", fmt.Sprintf("Could not read DNS settings: %s", err))
 		return
@@ -1139,7 +1147,8 @@ func (r *dnsSettingsResource) readIntoModel(ctx context.Context, model *dnsSetti
 	return
 }
 
-func (r *dnsSettingsResource) buildSetParams(ctx context.Context, model *dnsSettingsResourceModel) url.Values {
+func (r *dnsSettingsResource) buildSetParams(ctx context.Context, model *dnsSettingsResourceModel) (url.Values, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	params := url.Values{}
 
 	if !model.DnsServerDomain.IsNull() && !model.DnsServerDomain.IsUnknown() {
@@ -1447,14 +1456,22 @@ func (r *dnsSettingsResource) buildSetParams(ctx context.Context, model *dnsSett
 
 	if !model.BlockListUrls.IsNull() && !model.BlockListUrls.IsUnknown() {
 		var urls []string
-		model.BlockListUrls.ElementsAs(ctx, &urls, false)
+		d := model.BlockListUrls.ElementsAs(ctx, &urls, false)
+		diags.Append(d...)
+		if diags.HasError() {
+			return params, diags
+		}
 		params.Set("blockListUrls", strings.Join(urls, ","))
 	}
 	if !model.Forwarders.IsNull() && !model.Forwarders.IsUnknown() {
 		var fwds []string
-		model.Forwarders.ElementsAs(ctx, &fwds, false)
+		d := model.Forwarders.ElementsAs(ctx, &fwds, false)
+		diags.Append(d...)
+		if diags.HasError() {
+			return params, diags
+		}
 		params.Set("forwarders", strings.Join(fwds, ","))
 	}
 
-	return params
+	return params, diags
 }

@@ -79,7 +79,7 @@ func (r *allowedZoneResource) Create(ctx context.Context, req resource.CreateReq
 		"domain": domain,
 	})
 
-	_, err := r.client.AllowZone(domain)
+	_, err := r.client.AllowZone(ctx, domain)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating Allowed Zone",
@@ -100,7 +100,7 @@ func (r *allowedZoneResource) Read(ctx context.Context, req resource.ReadRequest
 
 	domain := state.Domain.ValueString()
 
-	result, err := r.client.ListAllowedZones(domain)
+	result, err := r.client.ListAllowedZones(ctx, domain)
 	if err != nil {
 		resp.State.RemoveResource(ctx)
 		return
@@ -137,7 +137,7 @@ func (r *allowedZoneResource) Delete(ctx context.Context, req resource.DeleteReq
 		"domain": domain,
 	})
 
-	_, err := r.client.DeleteAllowedZone(domain)
+	_, err := r.client.DeleteAllowedZone(ctx, domain)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting Allowed Zone",
@@ -152,7 +152,7 @@ func (r *allowedZoneResource) ImportState(ctx context.Context, req resource.Impo
 	}
 
 	// Verify the zone exists.
-	_, err := r.client.ListAllowedZones(req.ID)
+	_, err := r.client.ListAllowedZones(ctx, req.ID)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Importing Allowed Zone",

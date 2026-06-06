@@ -119,7 +119,7 @@ func (d *dhcpLeasesDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	scopeName := config.ScopeName.ValueString()
 
-	result, err := d.client.ListDHCPLeases(scopeName)
+	result, err := d.client.ListDHCPLeases(ctx, scopeName)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading DHCP Leases",
@@ -140,7 +140,10 @@ func (d *dhcpLeasesDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	for _, entry := range leaseList {
-		l := entry.(map[string]interface{})
+		l, ok := entry.(map[string]interface{})
+		if !ok {
+			continue
+		}
 
 		// Filter to only leases belonging to this scope
 		leaseScope, _ := l["scope"].(string)

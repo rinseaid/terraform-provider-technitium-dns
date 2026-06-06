@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -24,7 +25,7 @@ func testAccCheckDNSRecordDestroy(s *terraform.State) error {
 		recType := rs.Primary.Attributes["type"]
 		value := rs.Primary.Attributes["value"]
 
-		response, err := c.GetRecords(domain, zone, false)
+		response, err := c.GetRecords(context.Background(), domain, zone, false)
 		if err != nil {
 			continue
 		}

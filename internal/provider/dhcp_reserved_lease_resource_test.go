@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -92,7 +93,7 @@ func testAccCheckDHCPReservedLeaseDestroy(scopeName, mac string) resource.TestCh
 			return fmt.Errorf("creating client for destroy check: %s", err)
 		}
 
-		scopeData, err := c.GetDHCPScope(scopeName)
+		scopeData, err := c.GetDHCPScope(context.Background(), scopeName)
 		if err != nil {
 			// Scope itself was deleted, so the lease is gone too.
 			return nil

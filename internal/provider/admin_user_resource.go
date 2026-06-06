@@ -58,6 +58,7 @@ func (r *adminUserResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Description: "Password for the admin user. Write-only; not read back from the API.",
 				Required:    true,
 				Sensitive:   true,
+				WriteOnly:   true,
 			},
 			"display_name": schema.StringAttribute{
 				Description: "Display name for the admin user.",
@@ -119,7 +120,7 @@ func (r *adminUserResource) Create(ctx context.Context, req resource.CreateReque
 		extra.Set("displayName", plan.DisplayName.ValueString())
 	}
 
-	_, err := r.client.CreateUser(username, password, extra)
+	_, err := r.client.CreateUser(ctx, username, password, extra)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating Admin User",
@@ -148,7 +149,7 @@ func (r *adminUserResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	if needsSet {
-		_, err := r.client.SetUserDetails(username, setParams)
+		_, err := r.client.SetUserDetails(ctx, username, setParams)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error Setting Admin User Details",
@@ -159,7 +160,7 @@ func (r *adminUserResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	// Read back.
-	r.readUserIntoModel(username, &plan, &resp.Diagnostics)
+	r.readUserIntoModel(ctx, username, &plan, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -176,9 +177,16 @@ func (r *adminUserResource) Read(ctx context.Context, req resource.ReadRequest, 
 
 	username := state.Username.ValueString()
 
-	readResp, err := r.client.GetUserDetails(username)
+	readResp, err := r.client.GetUserDetails(ctx, username)
 	if err != nil {
-		resp.State.RemoveResource(ctx)
+		if strings.Contains(err.Error(), "was not found") {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError(
+			"Error Reading Admin User",
+			fmt.Sprintf("Could not read user %q: %s", username, err),
+		)
 		return
 	}
 
@@ -231,11 +239,11 @@ func (r *adminUserResource) Update(ctx context.Context, req resource.UpdateReque
 		params.Set("memberOfGroups", "")
 	}
 
-	if !plan.Password.Equal(state.Password) {
+	if !plan.Password.IsNull() {
 		params.Set("newPass", plan.Password.ValueString())
 	}
 
-	_, err := r.client.SetUserDetails(username, params)
+	_, err := r.client.SetUserDetails(ctx, username, params)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating Admin User",
@@ -245,7 +253,7 @@ func (r *adminUserResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	// Read back.
-	r.readUserIntoModel(username, &plan, &resp.Diagnostics)
+	r.readUserIntoModel(ctx, username, &plan, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -266,7 +274,7 @@ func (r *adminUserResource) Delete(ctx context.Context, req resource.DeleteReque
 		"username": username,
 	})
 
-	_, err := r.client.DeleteUser(username)
+	_, err := r.client.DeleteUser(ctx, username)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting Admin User",
@@ -278,7 +286,7 @@ func (r *adminUserResource) Delete(ctx context.Context, req resource.DeleteReque
 func (r *adminUserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	username := req.ID
 
-	readResp, err := r.client.GetUserDetails(username)
+	readResp, err := r.client.GetUserDetails(ctx, username)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Importing Admin User",
@@ -299,8 +307,8 @@ func (r *adminUserResource) ImportState(ctx context.Context, req resource.Import
 
 // readUserIntoModel reads user details from the API and populates the model.
 // Password is preserved from the plan since it is write-only.
-func (r *adminUserResource) readUserIntoModel(username string, model *adminUserResourceModel, diags *diag.Diagnostics) {
-	readResp, err := r.client.GetUserDetails(username)
+func (r *adminUserResource) readUserIntoModel(ctx context.Context, username string, model *adminUserResourceModel, diags *diag.Diagnostics) {
+	readResp, err := r.client.GetUserDetails(ctx, username)
 	if err != nil {
 		diags.AddError(
 			"Error Reading Admin User",

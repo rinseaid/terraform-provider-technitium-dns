@@ -161,7 +161,7 @@ func (d *dnsRecordsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		"listZone": listZone,
 	})
 
-	response, err := d.client.GetRecords(domain, zone, listZone)
+	response, err := d.client.GetRecords(ctx, domain, zone, listZone)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading DNS Records",
@@ -196,14 +196,6 @@ func (d *dnsRecordsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		// Apply type filter.
 		if typeFilter != "" && !strings.EqualFold(recType, typeFilter) {
 			continue
-		}
-
-		// Apply domain filter when listing the full zone.
-		if listZone && !config.Domain.IsNull() && !config.Domain.IsUnknown() {
-			recName := stringFromMap(rec, "name")
-			if !strings.EqualFold(recName, config.Domain.ValueString()) {
-				continue
-			}
 		}
 
 		value := recordValueFromRData(rec, recType)

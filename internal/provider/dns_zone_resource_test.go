@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -177,7 +178,7 @@ func testAccCheckDNSZoneDestroy(zoneName string) resource.TestCheckFunc {
 			return fmt.Errorf("creating client for destroy check: %s", err)
 		}
 
-		_, err = c.GetZoneOptions(zoneName)
+		_, err = c.GetZoneOptions(context.Background(), zoneName)
 		if err == nil {
 			return fmt.Errorf("DNS zone %q still exists after destroy", zoneName)
 		}
