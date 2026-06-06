@@ -9,3 +9,4 @@ dist/
 *.tfstate
 *.tfstate.*
 crash.log
+APIDOCS.md
