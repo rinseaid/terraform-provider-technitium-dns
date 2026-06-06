@@ -231,21 +231,13 @@ func (r *dhcpScopeResource) Create(ctx context.Context, req resource.CreateReque
 
 	if plan.Enabled.ValueBool() {
 		_, err = r.client.EnableDHCPScope(ctx, plan.Name.ValueString())
-	} else {
-		_, err = r.client.DisableDHCPScope(ctx, plan.Name.ValueString())
-	}
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error Setting DHCP Scope Enabled State",
-			fmt.Sprintf("Could not set enabled state for scope %q: %s", plan.Name.ValueString(), err),
-		)
-		return
-	}
-
-	diags = r.readIntoModel(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Enabling DHCP Scope",
+				fmt.Sprintf("Could not enable scope %q: %s", plan.Name.ValueString(), err),
+			)
+			return
+		}
 	}
 
 	diags = resp.State.Set(ctx, &plan)
@@ -272,7 +264,10 @@ func (r *dhcpScopeResource) Read(ctx context.Context, req resource.ReadRequest, 
 
 func (r *dhcpScopeResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan dhcpScopeResourceModel
+	var state dhcpScopeResourceModel
 	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	diags = req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -295,23 +290,19 @@ func (r *dhcpScopeResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	if plan.Enabled.ValueBool() {
-		_, err = r.client.EnableDHCPScope(ctx, plan.Name.ValueString())
-	} else {
-		_, err = r.client.DisableDHCPScope(ctx, plan.Name.ValueString())
-	}
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error Setting DHCP Scope Enabled State",
-			fmt.Sprintf("Could not set enabled state for scope %q: %s", plan.Name.ValueString(), err),
-		)
-		return
-	}
-
-	diags = r.readIntoModel(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	if !plan.Enabled.Equal(state.Enabled) {
+		if plan.Enabled.ValueBool() {
+			_, err = r.client.EnableDHCPScope(ctx, plan.Name.ValueString())
+		} else {
+			_, err = r.client.DisableDHCPScope(ctx, plan.Name.ValueString())
+		}
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Setting DHCP Scope Enabled State",
+				fmt.Sprintf("Could not set enabled state for scope %q: %s", plan.Name.ValueString(), err),
+			)
+			return
+		}
 	}
 
 	diags = resp.State.Set(ctx, &plan)
