@@ -42,6 +42,11 @@ func NewWithCredentials(baseURL, username, password string, timeout time.Duratio
 		password: password,
 		httpClient: &http.Client{
 			Timeout: timeout,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 20,
+				IdleConnTimeout:     90 * time.Second,
+			},
 		},
 	}
 
@@ -63,6 +68,11 @@ func NewWithToken(baseURL, token string, timeout time.Duration) (*Client, error)
 		token:   token,
 		httpClient: &http.Client{
 			Timeout: timeout,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 20,
+				IdleConnTimeout:     90 * time.Second,
+			},
 		},
 	}
 	_, err := c.doRequest(context.Background(), http.MethodGet, "settings/get", nil)
