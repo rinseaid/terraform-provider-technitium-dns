@@ -84,6 +84,9 @@ jobs:
       - name: Install GoReleaser
         run: go install github.com/goreleaser/goreleaser/v2@latest
 
+      - name: Set release remote
+        run: git remote set-url origin https://forgejo.rinseaid.net/rinseaid/terraform-provider-technitium-dns.git
+
       - name: Run GoReleaser
         run: |
           goreleaser release --clean --release-notes=RELEASE_NOTES.md ${{ steps.import_gpg.outputs.fingerprint == '' && '--skip=sign' || '' }}
