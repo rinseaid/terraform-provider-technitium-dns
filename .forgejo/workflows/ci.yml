@@ -139,4 +139,4 @@ jobs:
 
       - name: Stop Technitium
         if: always()
-        run: docker rm -f technitium 2>/dev/null || true
+        run: docker rm -fv technitium 2>/dev/null || true
