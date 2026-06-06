@@ -55,10 +55,9 @@ func (r *adminUserResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"password": schema.StringAttribute{
-				Description: "Password for the admin user. Write-only; not read back from the API.",
+				Description: "Password for the admin user. Not read back from the API.",
 				Required:    true,
 				Sensitive:   true,
-				WriteOnly:   true,
 			},
 			"display_name": schema.StringAttribute{
 				Description: "Display name for the admin user.",

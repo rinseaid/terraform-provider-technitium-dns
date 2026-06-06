@@ -209,6 +209,15 @@ func (r *dnsZoneResource) Create(ctx context.Context, req resource.CreateRequest
 			protocol = plan.ForwarderProtocol.ValueString()
 		}
 		createExtra.Set("protocol", protocol)
+		plan.Forwarder = types.StringValue(forwarder)
+		plan.ForwarderProtocol = types.StringValue(protocol)
+	} else {
+		if plan.Forwarder.IsUnknown() {
+			plan.Forwarder = types.StringNull()
+		}
+		if plan.ForwarderProtocol.IsUnknown() {
+			plan.ForwarderProtocol = types.StringNull()
+		}
 	}
 	if zoneType == "Secondary" || zoneType == "SecondaryForwarder" || zoneType == "SecondaryCatalog" || zoneType == "Stub" {
 		if createExtra == nil {
