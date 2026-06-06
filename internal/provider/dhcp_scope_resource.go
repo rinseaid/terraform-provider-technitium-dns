@@ -240,6 +240,12 @@ func (r *dhcpScopeResource) Create(ctx context.Context, req resource.CreateReque
 		}
 	}
 
+	diags = r.readIntoModel(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
